@@ -61,6 +61,9 @@ docker run --rm -p 8080:8080 imposter
 
 ## Deploying on Coolify
 
+> For the full, step-by-step walkthrough (Coolify + Bubblewrap, verification,
+> troubleshooting) see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
 The repo ships a `Dockerfile` (nginx serving the static shell), so Coolify
 deploys it with **one click, no configuration**:
 
