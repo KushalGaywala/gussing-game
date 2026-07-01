@@ -1,0 +1,18 @@
+# Keep tooling, VCS, and docs out of the container image / web root.
+.git
+.github
+node_modules
+*.log
+.DS_Store
+
+# Build tooling — not part of the served static site.
+scripts/
+twa-manifest.json
+
+# Bubblewrap / Android build artifacts (generated locally, not served).
+twa/
+*.apk
+*.aab
+*.keystore
+android.keystore
+twa-manifest.json.bak

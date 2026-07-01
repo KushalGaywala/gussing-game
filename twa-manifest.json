@@ -1,0 +1,39 @@
+{
+  "packageId": "com.imposter.gujarati",
+  "host": "imposter.example.com",
+  "name": "ઈમ્પોસ્ટર — Gujarati Imposter Game",
+  "launcherName": "ઈમ્પોસ્ટર",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#0f1020",
+  "themeColorDark": "#0f1020",
+  "navigationColor": "#0f1020",
+  "navigationColorDark": "#0f1020",
+  "navigationDividerColor": "#0f1020",
+  "navigationDividerColorDark": "#0f1020",
+  "backgroundColor": "#0f1020",
+  "enableNotifications": false,
+  "startUrl": "/index.html",
+  "iconUrl": "https://imposter.example.com/icons/icon-512.png",
+  "maskableIconUrl": "https://imposter.example.com/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://imposter.example.com/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://imposter.example.com/",
+  "minSdkVersion": 21
+}

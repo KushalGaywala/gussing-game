@@ -1,5 +1,5 @@
 /* Service worker — offline app shell caching (cache-first). */
-const CACHE = 'imposter-v1';
+const CACHE = 'imposter-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,9 @@ const ASSETS = [
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-maskable.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
 ];
 
 self.addEventListener('install', (e) => {
