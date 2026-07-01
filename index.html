@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f1020" />
+  <meta name="description" content="ગુજરાતી ઈમ્પોસ્ટર પાર્ટી ગેમ — Gujarati Imposter party game" />
+  <title>ઈમ્પોસ્ટર — Imposter</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ============ HOME ============ -->
+    <section class="screen active" id="screen-home">
+      <div class="home-hero">
+        <div class="logo">🕵️</div>
+        <h1 class="title">ઈમ્પોસ્ટર</h1>
+        <p class="subtitle">Imposter — ગુજરાતી પાર્ટી ગેમ</p>
+      </div>
+      <div class="home-actions">
+        <button class="btn btn-primary btn-lg" data-nav="setup">🎮 નવી રમત <span class="en">New Game</span></button>
+        <button class="btn btn-ghost" data-nav="history">🏆 ઇતિહાસ <span class="en">History</span></button>
+        <button class="btn btn-ghost" data-nav="how">❓ કેવી રીતે રમવું <span class="en">How to play</span></button>
+      </div>
+      <p class="install-hint" id="install-hint" hidden>
+        <button class="btn btn-outline" id="install-btn">📲 ઍપ ઇન્સ્ટોલ કરો <span class="en">Install app</span></button>
+      </p>
+    </section>
+
+    <!-- ============ SETUP ============ -->
+    <section class="screen" id="screen-setup">
+      <header class="bar">
+        <button class="icon-btn" data-nav="home">←</button>
+        <h2>રમતની ગોઠવણ <span class="en">Setup</span></h2>
+      </header>
+
+      <div class="panel">
+        <label class="field-label">ખેલાડીઓની સંખ્યા <span class="en">Players</span></label>
+        <div class="stepper" data-stepper="players">
+          <button class="step-btn" data-delta="-1">−</button>
+          <span class="step-value" id="val-players">4</span>
+          <button class="step-btn" data-delta="1">+</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <label class="field-label">ઈમ્પોસ્ટરની સંખ્યા <span class="en">Imposters</span></label>
+        <div class="stepper" data-stepper="imposters">
+          <button class="step-btn" data-delta="-1">−</button>
+          <span class="step-value" id="val-imposters">1</span>
+          <button class="step-btn" data-delta="1">+</button>
+        </div>
+        <p class="hint" id="imposter-hint"></p>
+      </div>
+
+      <div class="panel">
+        <label class="field-label" for="sel-category">શ્રેણી <span class="en">Category</span></label>
+        <select id="sel-category" class="select"></select>
+      </div>
+
+      <div class="panel">
+        <label class="field-label">ખેલાડીઓના નામ (વૈકલ્પિક) <span class="en">Player names (optional)</span></label>
+        <div id="name-inputs" class="name-inputs"></div>
+      </div>
+
+      <div class="panel preset-panel">
+        <div class="preset-row">
+          <select id="sel-preset" class="select"><option value="">પ્રીસેટ પસંદ કરો… (Load preset)</option></select>
+          <button class="btn btn-outline btn-sm" id="btn-load-preset">લોડ</button>
+        </div>
+        <div class="preset-row">
+          <input type="text" id="preset-name" class="input" placeholder="પ્રીસેટનું નામ (Preset name)" />
+          <button class="btn btn-outline btn-sm" id="btn-save-preset">💾 સાચવો</button>
+        </div>
+      </div>
+
+      <div class="sticky-footer">
+        <button class="btn btn-primary btn-lg" id="btn-start">🚀 શરૂ કરો <span class="en">Start</span></button>
+      </div>
+    </section>
+
+    <!-- ============ REVEAL (pass the phone) ============ -->
+    <section class="screen" id="screen-reveal">
+      <div class="reveal-wrap">
+        <p class="pass-instruction" id="pass-instruction">ફોન આપો…</p>
+        <h2 class="pass-player" id="pass-player">ખેલાડી 1</h2>
+
+        <div class="reveal-card" id="reveal-card">
+          <div class="reveal-hidden" id="reveal-hidden">
+            <div class="tap-emoji">🤫</div>
+            <p>તમારો શબ્દ જોવા સ્લાઇડ કરો</p>
+            <p class="en">Slide to reveal your word</p>
+          </div>
+          <div class="reveal-shown" id="reveal-shown" hidden>
+            <div id="reveal-content"></div>
+          </div>
+        </div>
+
+        <!-- slide-to-reveal control -->
+        <div class="slider" id="slider">
+          <div class="slider-fill" id="slider-fill"></div>
+          <div class="slider-label" id="slider-label">સ્લાઇડ કરો → <span class="en">Slide</span></div>
+          <div class="slider-knob" id="slider-knob">👉</div>
+        </div>
+
+        <button class="btn btn-primary btn-lg" id="btn-next-player" hidden>
+          આગળ <span class="en">Next</span> →
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ PLAY / DISCUSSION ============ -->
+    <section class="screen" id="screen-play">
+      <div class="play-wrap">
+        <h2>ચર્ચા કરો! <span class="en">Discuss &amp; Vote</span></h2>
+        <p class="play-desc">દરેક ખેલાડી શબ્દ વિશે એક સંકેત આપે. ઈમ્પોસ્ટરને શોધો!<br/>
+          <span class="en">Everyone gives a clue about the word. Find the imposter!</span></p>
+
+        <div class="timer-box">
+          <div class="timer-display" id="timer-display">03:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-outline btn-sm" id="timer-toggle">▶︎ શરૂ</button>
+            <button class="btn btn-outline btn-sm" id="timer-reset">↺</button>
+            <button class="btn btn-outline btn-sm" data-timer-set="120">2m</button>
+            <button class="btn btn-outline btn-sm" data-timer-set="180">3m</button>
+            <button class="btn btn-outline btn-sm" data-timer-set="300">5m</button>
+          </div>
+        </div>
+
+        <button class="btn btn-ghost" id="btn-show-word">🔎 શબ્દ બતાવો <span class="en">Reveal word &amp; imposters</span></button>
+        <div class="reveal-answer" id="reveal-answer" hidden></div>
+
+        <div class="result-buttons">
+          <p class="field-label">કોણ જીત્યું? <span class="en">Who won?</span></p>
+          <button class="btn btn-win" data-winner="civilians">👥 ખેલાડીઓ જીત્યા <span class="en">Civilians win</span></button>
+          <button class="btn btn-lose" data-winner="imposters">🕵️ ઈમ્પોસ્ટર જીત્યા <span class="en">Imposters win</span></button>
+          <button class="btn btn-ghost btn-sm" data-winner="skip">પરિણામ વગર છોડો <span class="en">Skip / no result</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HISTORY ============ -->
+    <section class="screen" id="screen-history">
+      <header class="bar">
+        <button class="icon-btn" data-nav="home">←</button>
+        <h2>ઇતિહાસ <span class="en">History</span></h2>
+        <button class="icon-btn danger" id="btn-clear-history" title="Clear">🗑️</button>
+      </header>
+      <div id="history-list" class="history-list"></div>
+    </section>
+
+    <!-- ============ HOW TO PLAY ============ -->
+    <section class="screen" id="screen-how">
+      <header class="bar">
+        <button class="icon-btn" data-nav="home">←</button>
+        <h2>કેવી રીતે રમવું <span class="en">How to play</span></h2>
+      </header>
+      <div class="how-content">
+        <ol>
+          <li><b>ગોઠવણ:</b> ખેલાડીઓ અને ઈમ્પોસ્ટરની સંખ્યા પસંદ કરો. <span class="en">Pick players &amp; imposters.</span></li>
+          <li><b>જુઓ:</b> ફોન એક-એક કરીને દરેક ખેલાડીને આપો. દરેક સ્લાઇડ કરીને પોતાનો શબ્દ જુએ. <span class="en">Pass the phone; each player slides to reveal their word.</span></li>
+          <li><b>ઈમ્પોસ્ટર</b> ને શબ્દ મળતો નથી — તેણે બહાનું બનાવવું પડે! <span class="en">Imposters get no word — they must bluff.</span></li>
+          <li><b>ચર્ચા:</b> દરેક ખેલાડી શબ્દ વિશે એક સંકેત આપે (શબ્દ બોલ્યા વગર). <span class="en">Each player gives one clue without saying the word.</span></li>
+          <li><b>મત આપો:</b> ઈમ્પોસ્ટર કોણ છે તે શોધો. પરિણામ સાચવો! <span class="en">Vote out the imposter &amp; save the result.</span></li>
+        </ol>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="js/vocab.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

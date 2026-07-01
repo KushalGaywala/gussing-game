@@ -1,0 +1,28 @@
+{
+  "name": "ઈમ્પોસ્ટર — Gujarati Imposter Game",
+  "short_name": "ઈમ્પોસ્ટર",
+  "description": "ગુજરાતી ઈમ્પોસ્ટર પાર્ટી ગેમ — a Gujarati word-based Imposter party game. Pass the phone, find the imposter!",
+  "lang": "gu",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1020",
+  "theme_color": "#0f1020",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
