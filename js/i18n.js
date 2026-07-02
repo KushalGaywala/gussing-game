@@ -121,6 +121,10 @@
 
     // ---- misc ----
     quit_confirm: { gu: 'રમત છોડવી છે?', en: 'Quit this game?' },
+    language_title: { gu: 'ભાષા', en: 'Language' },
+    primary_label: { gu: 'મુખ્ય ભાષા', en: 'Primary language' },
+    secondary_label: { gu: 'બીજી ભાષા', en: 'Secondary language' },
+    none: { gu: 'કોઈ નહીં', en: 'None' },
 
     // ---- how to play (values may contain <b> markup) ----
     how_title: { gu: 'કેવી રીતે રમવું', en: 'How to play' },

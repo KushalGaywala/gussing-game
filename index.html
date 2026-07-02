@@ -21,12 +21,11 @@
     <!-- ============ HOME ============ -->
     <section class="screen active" id="screen-home">
       <div class="home-top">
-        <div class="lang-picker">
-          <span class="icon icon-s" data-icon="languages"></span>
-          <select id="sel-primary" class="lang-select" aria-label="Primary language"></select>
-          <span class="lang-sep">+</span>
-          <select id="sel-secondary" class="lang-select" aria-label="Secondary language"></select>
-        </div>
+        <button class="lang-btn" id="lang-btn" type="button" aria-haspopup="dialog">
+          <span class="icon icon-s lang-btn-globe" data-icon="languages"></span>
+          <span class="lang-btn-label" id="lang-btn-label">ગુજરાતી</span>
+          <span class="icon icon-s lang-btn-chev" data-icon="chevron-down"></span>
+        </button>
       </div>
       <div class="home-hero">
         <div class="logo-mark">
@@ -357,6 +356,25 @@
       </div>
     </section>
 
+  </div>
+
+  <!-- language picker sheet -->
+  <div class="lang-sheet" id="lang-sheet" hidden>
+    <div class="lang-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="lang-sheet-title">
+      <div class="lang-sheet-grip"></div>
+      <div class="lang-sheet-head">
+        <h3 class="lang-sheet-title" id="lang-sheet-title">ભાષા</h3>
+        <button class="icon-btn" id="lang-sheet-close" aria-label="Close">
+          <span class="icon" data-icon="x"></span>
+        </button>
+      </div>
+      <div class="lang-sheet-body">
+        <p class="lang-sheet-label" id="lang-primary-label">મુખ્ય ભાષા</p>
+        <div class="lang-list" id="lang-list-primary"></div>
+        <p class="lang-sheet-label" id="lang-secondary-label">બીજી ભાષા</p>
+        <div class="lang-list" id="lang-list-secondary"></div>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast" hidden></div>

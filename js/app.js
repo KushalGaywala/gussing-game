@@ -61,52 +61,72 @@
   }
   function pairOf(obj) { return I18n.secondary ? `${I18n.of(obj)} (${I18n.ofs(obj)})` : I18n.of(obj); }
 
-  function buildLangPickers() {
+  // The picker is a pill button that opens a sheet with a Primary list and a
+  // Secondary list (None + every language). Both are rebuilt from I18n.LANGS,
+  // so any registered language appears; scrolling handles a long list.
+  function renderLangButton() {
     const langs = I18n.LANGS;
-    const pri = $('#sel-primary');
-    const sec = $('#sel-secondary');
-    if (!pri || !sec) return;
+    const label = I18n.secondary
+      ? `${langs[I18n.primary]} · ${langs[I18n.secondary]}`
+      : langs[I18n.primary];
+    $('#lang-btn-label').textContent = label || I18n.primary;
+  }
+
+  function langRow(slot, code, label, selected) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lang-row' + (selected ? ' selected' : '');
+    b.dataset.code = code;
+    b.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    b.innerHTML = `<span class="lang-row-name">${label}</span>` + (selected ? Icons.svg('check', 'icon-s') : '');
+    b.addEventListener('click', () => chooseLang(slot, code));
+    return b;
+  }
+
+  function buildLangSheet() {
+    const langs = I18n.LANGS;
+    $('#lang-sheet-title').textContent = I18n.t('language_title');
+    $('#lang-primary-label').textContent = I18n.t('primary_label');
+    $('#lang-secondary-label').textContent = I18n.t('secondary_label');
+
+    const pri = $('#lang-list-primary');
     pri.innerHTML = '';
     Object.keys(langs).forEach((code) => {
-      const o = document.createElement('option');
-      o.value = code; o.textContent = langs[code];
-      pri.appendChild(o);
+      pri.appendChild(langRow('primary', code, langs[code], I18n.primary === code));
     });
-    pri.value = I18n.primary;
-    // secondary = "none" + every language except the current primary
+
+    const sec = $('#lang-list-secondary');
     sec.innerHTML = '';
-    const none = document.createElement('option');
-    none.value = ''; none.textContent = '—';
-    sec.appendChild(none);
+    sec.appendChild(langRow('secondary', '', I18n.t('none'), !I18n.secondary));
     Object.keys(langs).forEach((code) => {
-      if (code === I18n.primary) return;
-      const o = document.createElement('option');
-      o.value = code; o.textContent = langs[code];
-      sec.appendChild(o);
+      if (code === I18n.primary) return; // can't be both slots
+      sec.appendChild(langRow('secondary', code, langs[code], I18n.secondary === code));
     });
-    sec.value = I18n.secondary || '';
   }
+
+  function chooseLang(slot, code) {
+    if (slot === 'primary') {
+      // picking the current secondary as primary swaps the two, rather than
+      // dropping the secondary
+      const newS = code === I18n.secondary ? I18n.primary : I18n.secondary;
+      I18n.set(code, newS);
+    } else {
+      I18n.set(I18n.primary, code);
+    }
+    applyLang(); // live-updates the app + refreshes the open sheet's checkmarks
+  }
+
+  function openLangSheet() { buildLangSheet(); $('#lang-sheet').hidden = false; }
+  function closeLangSheet() { $('#lang-sheet').hidden = true; }
 
   function applyLang() {
     I18n.apply(document);   // static [data-i18n*] markup
-    buildLangPickers();     // reflect current selection + valid secondary set
+    renderLangButton();
+    if (!$('#lang-sheet').hidden) buildLangSheet(); // refresh sheet if open
     buildCategorySelect();  // <option> text can't use data-i18n
     refreshPresetSelect();
     renderSetup();          // imposter hint + name placeholders
     $('#preset-name').placeholder = I18n.tt('preset_name_ph');
-  }
-
-  function onPrimaryChange() {
-    const newP = $('#sel-primary').value;
-    // choosing the current secondary as primary swaps the two (old primary
-    // becomes the secondary) rather than dropping the secondary
-    const newS = newP === I18n.secondary ? I18n.primary : I18n.secondary;
-    I18n.set(newP, newS);
-    applyLang();
-  }
-  function onSecondaryChange() {
-    I18n.set(I18n.primary, $('#sel-secondary').value);
-    applyLang();
   }
 
   // ---------- current game state ----------
@@ -802,8 +822,10 @@
     I18n.load();
     // one-time listeners (kept out of the rebuildable render fns so they don't stack)
     $('#sel-category').addEventListener('change', () => { config.category = $('#sel-category').value; });
-    $('#sel-primary').addEventListener('change', onPrimaryChange);
-    $('#sel-secondary').addEventListener('change', onSecondaryChange);
+    $('#lang-btn').addEventListener('click', openLangSheet);
+    $('#lang-sheet-close').addEventListener('click', closeLangSheet);
+    $('#lang-sheet').addEventListener('click', (e) => { if (e.target === $('#lang-sheet')) closeLangSheet(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#lang-sheet').hidden) closeLangSheet(); });
     clampImposters();
     applyLang(); // renders static i18n, builds selects, renders setup for the current languages
     setTimer(timerDuration);

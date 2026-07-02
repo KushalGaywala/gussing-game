@@ -1,5 +1,5 @@
 /* Service worker — offline app shell caching (cache-first). */
-const CACHE = 'imposter-v7';
+const CACHE = 'imposter-v8';
 const ASSETS = [
   './',
   './index.html',
