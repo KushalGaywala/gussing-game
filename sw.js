@@ -1,10 +1,11 @@
 /* Service worker — offline app shell caching (cache-first). */
-const CACHE = 'imposter-v6';
+const CACHE = 'imposter-v7';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './js/icons.js',
+  './js/i18n.js',
   './js/vocab.js',
   './js/db.js',
   './js/app.js',

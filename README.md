@@ -1,7 +1,8 @@
 # ઈમ્પોસ્ટર — Gujarati Imposter Game
 
-A pass-the-phone **Imposter** party game (like the famous "undercover / imposter" word game)
-built entirely in Gujarati, with English meanings in brackets. Runs fully offline as an
+A pass-the-phone **Imposter** party game (like the famous "undercover / imposter" word game).
+Fully bilingual (Gujarati + English out of the box) with a per-slot language picker — choose
+any registered language as primary and any (or none) as secondary. Runs fully offline as an
 installable **PWA** — no accounts, no server, no network required.
 
 ## How to play
@@ -22,7 +23,7 @@ installable **PWA** — no accounts, no server, no network required.
 - **Score history** — every finished game (word, players, imposters, winner) stored locally (IndexedDB).
 - **Hold-to-peek card** pass-the-phone flow — the word is only visible while the card is held down, so passing the phone is cheat-proof.
 - **Round-based voting** — each round the group votes a player out or skips; ejected roles are revealed and win conditions (all imposters out ⇒ civilians win; imposters reach parity ⇒ imposters win) are checked automatically. Suggesting and discussion rounds alternate until someone wins.
-- **Language modes** — a dropdown in the top-right toggles between **Hybrid** (Gujarati primary + English secondary, the default) and **Normal** (Gujarati only). The choice is saved and applied everywhere, with no flash of secondary text on load.
+- **Per-slot language selection** — two dropdowns in the top-right pick a **primary** language and an optional **secondary** language, independently, from every registered language. Any language can fill either slot: secondary **None** shows one language only; e.g. English-primary + Gujarati-secondary, or Gujarati-only. The choice is saved and applied everywhere (UI, words and categories), with no flash of secondary text on load. Ships with Gujarati + English; see **[Adding a language](#adding-a-language)**.
 - Discussion **timer** with quick presets, progress bar and vibration on time-up.
 - **Offline-first PWA** — service worker caches the whole app shell.
 - **Installable** on Android/desktop; foundations included for **TWA** (Trusted Web Activity).
@@ -35,9 +36,10 @@ Vanilla HTML/CSS/JS — no build step, no dependencies.
 |------|---------|
 | `index.html` | App shell / all screens |
 | `css/style.css` | Mobile-first dark theme |
-| `js/vocab.js` | Gujarati↔English word list + categories |
+| `js/vocab.js` | Per-language word list + categories (`{ gu, en, … }`) |
 | `js/db.js` | IndexedDB wrapper (presets + history) |
 | `js/icons.js` | Inline SVG icon set (self-contained, no sprite/`<use>`) |
+| `js/i18n.js` | Language registry + UI string catalog + primary/secondary rendering |
 | `js/app.js` | Router, game logic, hold-to-peek card, timer |
 | `manifest.webmanifest` | PWA manifest |
 | `sw.js` | Service worker (offline cache) |
@@ -46,6 +48,23 @@ Vanilla HTML/CSS/JS — no build step, no dependencies.
 | `Dockerfile` / `nginx.conf` | One-click Coolify deploy (static site on nginx) |
 | `twa-manifest.json` | Bubblewrap TWA config (set your host) |
 | `scripts/build-twa.sh` | One-command Android TWA build + assetlinks wiring |
+
+## Adding a language
+
+Languages are data — no engine changes needed. To add one (say Hindi, `hi`):
+
+1. **Register it** in [`js/i18n.js`](js/i18n.js) → `LANGS`:
+   ```js
+   const LANGS = { gu: 'ગુજરાતી', en: 'English', hi: 'हिन्दी' };
+   ```
+2. **Translate the UI** — add the `hi` variant to every entry in the `STRINGS`
+   catalog in the same file (each entry is `{ gu: '…', en: '…', hi: '…' }`).
+3. **Translate the words** — add `hi` to every word and category in
+   [`js/vocab.js`](js/vocab.js) (e.g. `{ gu: 'સિંહ', en: 'Lion', hi: 'शेर', cat: 'animals' }`).
+
+That's it — the language then appears in both the primary and secondary
+dropdowns and can be chosen for either slot. Missing translations fall back to
+English, then Gujarati, so a partially-translated language still works.
 
 ## Running locally
 
