@@ -10,7 +10,9 @@ installable **PWA** — no accounts, no server, no network required.
 2. **જુઓ / Reveal** — pass the phone around. Each player **holds the card and pulls it down** to peek at their secret word; **releasing snaps the card back** and hides it again. Only then does **Next** unlock — so nobody can see the previous player's word, and peeking again is a visible gesture everyone would notice.
 3. Everyone gets the **same Gujarati word** — except the **imposter(s)**, who get no word and must bluff.
 4. **ચર્ચા / Discuss** — each player gives one clue about the word (without saying it). Use the built-in timer.
-5. **મત / Vote** — decide who the imposter is, then record who won. Results are saved to **History**.
+5. **મત / Vote or Skip** — at the end of each discussion the group either **votes a player out** or **skips the round**. Voting a player out reveals whether they were an imposter or innocent.
+6. **રાઉન્ડ / Rounds** — if the game isn't over, a **suggesting round** is followed by another **discussion round**, then vote or skip again. This repeats until someone wins.
+7. **જીત / Win** — **civilians win** once every imposter has been voted out; **imposters win** the moment they equal or outnumber the surviving civilians. The result (with round count) is saved to **History**.
 
 ## Features
 
@@ -19,6 +21,7 @@ installable **PWA** — no accounts, no server, no network required.
 - **Presets** — save/load game configurations (IndexedDB).
 - **Score history** — every finished game (word, players, imposters, winner) stored locally (IndexedDB).
 - **Hold-to-peek card** pass-the-phone flow — the word is only visible while the card is held down, so passing the phone is cheat-proof.
+- **Round-based voting** — each round the group votes a player out or skips; ejected roles are revealed and win conditions (all imposters out ⇒ civilians win; imposters reach parity ⇒ imposters win) are checked automatically. Suggesting and discussion rounds alternate until someone wins.
 - Discussion **timer** with quick presets, progress bar and vibration on time-up.
 - **Offline-first PWA** — service worker caches the whole app shell.
 - **Installable** on Android/desktop; foundations included for **TWA** (Trusted Web Activity).
