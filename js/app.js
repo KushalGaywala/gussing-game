@@ -46,6 +46,36 @@
   const MIN_PLAYERS = 3;
   const MAX_PLAYERS = 20;
 
+  // ---------- language display mode ----------
+  // 'hybrid' shows the primary language (Gujarati) with the secondary (English)
+  // alongside; 'normal' shows only the primary. Secondary text in the DOM carries
+  // the .en / .word-en classes and is hidden via CSS in normal mode; strings that
+  // are assembled in JS (option labels, placeholders, toasts) use t() below.
+  const LANG_KEY = 'imposter-lang-mode';
+  let langMode = 'hybrid';
+  function loadLang() {
+    try {
+      const v = localStorage.getItem(LANG_KEY);
+      if (v === 'normal' || v === 'hybrid') langMode = v;
+    } catch (e) { /* ignore */ }
+  }
+  // Join a Gujarati + English pair for contexts that can't hold markup.
+  function t(gu, en) { return langMode === 'normal' ? gu : `${gu} (${en})`; }
+  function setLang(mode) {
+    langMode = mode === 'normal' ? 'normal' : 'hybrid';
+    try { localStorage.setItem(LANG_KEY, langMode); } catch (e) { /* ignore */ }
+    applyLang();
+  }
+  function applyLang() {
+    document.documentElement.classList.toggle('lang-normal', langMode === 'normal');
+    const sel = $('#sel-lang');
+    if (sel) sel.value = langMode;
+    // rebuild the bits assembled in JS so they follow the new mode
+    buildCategorySelect();
+    renderSetup();
+    refreshPresetSelect();
+  }
+
   // ---------- current game state ----------
   let game = null; // { word, category, roles[], names[], index }
 
@@ -60,7 +90,7 @@
     }
     const quit = e.target.closest('[data-quit]');
     if (quit) {
-      if (!game || confirm('રમત છોડવી છે? (Quit this game?)')) {
+      if (!game || confirm(t('રમત છોડવી છે?', 'Quit this game?'))) {
         stopTimer();
         game = null;
         showScreen('home');
@@ -79,8 +109,8 @@
     $('#val-players').textContent = config.players;
     $('#val-imposters').textContent = config.imposters;
     const maxImp = Math.max(1, config.players - 1);
-    $('#imposter-hint').textContent =
-      `૧ થી ${maxImp} સુધી (${config.players} ખેલાડીઓ માટે) · 1–${maxImp} allowed`;
+    $('#imposter-hint').innerHTML =
+      `૧ થી ${maxImp} સુધી (${config.players} ખેલાડીઓ માટે)<span class="en"> · 1–${maxImp} allowed</span>`;
     renderNameInputs();
   }
 
@@ -91,7 +121,7 @@
       const inp = document.createElement('input');
       inp.className = 'input';
       inp.type = 'text';
-      inp.placeholder = `ખેલાડી ${i + 1} (Player ${i + 1})`;
+      inp.placeholder = t(`ખેલાડી ${i + 1}`, `Player ${i + 1}`);
       inp.value = config.names[i] || '';
       inp.dataset.idx = i;
       inp.addEventListener('input', () => { config.names[i] = inp.value.trim(); });
@@ -104,17 +134,16 @@
     sel.innerHTML = '';
     const optAll = document.createElement('option');
     optAll.value = 'all';
-    optAll.textContent = 'બધી શ્રેણી (All categories)';
+    optAll.textContent = t('બધી શ્રેણી', 'All categories');
     sel.appendChild(optAll);
     Object.keys(CATEGORIES).forEach((key) => {
       const c = CATEGORIES[key];
       const o = document.createElement('option');
       o.value = key;
-      o.textContent = `${c.gu} (${c.en})`;
+      o.textContent = t(c.gu, c.en);
       sel.appendChild(o);
     });
     sel.value = config.category;
-    sel.addEventListener('change', () => { config.category = sel.value; });
   }
 
   // steppers
@@ -140,7 +169,11 @@
   async function refreshPresetSelect() {
     const sel = $('#sel-preset');
     const presets = await DB.getPresets();
-    sel.innerHTML = '<option value="">પ્રીસેટ પસંદ કરો… (Load preset)</option>';
+    sel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = t('પ્રીસેટ પસંદ કરો…', 'Load preset');
+    sel.appendChild(ph);
     presets.forEach((p) => {
       const o = document.createElement('option');
       o.value = p.id;
@@ -152,7 +185,7 @@
 
   $('#btn-save-preset').addEventListener('click', async () => {
     const name = $('#preset-name').value.trim();
-    if (!name) { toast('પ્રીસેટનું નામ લખો (Enter a name)'); return; }
+    if (!name) { toast(t('પ્રીસેટનું નામ લખો', 'Enter a name')); return; }
     await DB.addPreset({
       name,
       players: config.players,
@@ -162,7 +195,7 @@
     });
     $('#preset-name').value = '';
     await refreshPresetSelect();
-    toast('પ્રીસેટ સાચવ્યું (Preset saved)');
+    toast(t('પ્રીસેટ સાચવ્યું', 'Preset saved'));
   });
 
   $('#btn-load-preset').addEventListener('click', () => {
@@ -179,7 +212,7 @@
     clampImposters();
     $('#sel-category').value = config.category;
     renderSetup();
-    toast('પ્રીસેટ લોડ થયું (Preset loaded)');
+    toast(t('પ્રીસેટ લોડ થયું', 'Preset loaded'));
   });
 
   // ================= START GAME =================
@@ -189,7 +222,7 @@
     if (config.category !== 'all') {
       pool = VOCAB.filter((w) => w.cat === config.category);
     }
-    if (!pool.length) { toast('આ શ્રેણીમાં શબ્દ નથી'); return; }
+    if (!pool.length) { toast(t('આ શ્રેણીમાં શબ્દ નથી', 'No words in this category')); return; }
 
     const word = pool[Math.floor(Math.random() * pool.length)];
 
@@ -212,8 +245,8 @@
   function startRevealFor(i) {
     game.index = i;
     $('#pass-instruction').textContent = i === 0
-      ? 'ફોન આ ખેલાડીને આપો (Pass the phone to)'
-      : 'હવે ફોન આગળ આપો (Pass the phone to)';
+      ? t('ફોન આ ખેલાડીને આપો', 'Pass the phone to')
+      : t('હવે ફોન આગળ આપો', 'Pass the phone to');
     $('#pass-player').textContent = game.names[i];
     $('#turn-count').textContent = `${i + 1} / ${game.names.length}`;
     renderRevealDots();
@@ -253,7 +286,7 @@
       const c = CATEGORIES[game.word.cat];
       content.innerHTML = `
         <div>
-          <span class="word-cat">${c ? c.gu + ' · ' + c.en : ''}</span>
+          <span class="word-cat">${c ? c.gu + '<span class="en"> · ' + c.en + '</span>' : ''}</span>
           <p class="word-gu">${game.word.gu}</p>
           <p class="word-en">(${game.word.en})</p>
         </div>`;
@@ -464,7 +497,7 @@
   $('#btn-skip-round').addEventListener('click', () => {
     if (!game) return;
     stopTimer();
-    toast('રાઉન્ડ છોડ્યો (Round skipped)');
+    toast(t('રાઉન્ડ છોડ્યો', 'Round skipped'));
     nextRound();
   });
 
@@ -530,7 +563,7 @@
       if (!game.saved) {
         game.saved = true;
         saveResult(winner);
-        toast(civWin ? 'ખેલાડીઓ જીત્યા! (Civilians win)' : 'ઈમ્પોસ્ટર જીત્યા! (Imposters win)');
+        toast(civWin ? t('ખેલાડીઓ જીત્યા!', 'Civilians win') : t('ઈમ્પોસ્ટર જીત્યા!', 'Imposters win'));
       }
       const again = mkBtn('btn btn-primary btn-lg', 'rotate', 'નવી રમત', 'New game');
       again.addEventListener('click', () => { resetGame(); showScreen('setup'); });
@@ -569,7 +602,7 @@
         <span class="roster-name">${n}</span>
         <span class="roster-tags">
           ${game.roles[i] ? '<span class="chip chip-danger">ઈમ્પોસ્ટર</span>' : '<span class="chip chip-civ">ખેલાડી</span>'}
-          <span class="roster-state ${game.alive[i] ? 'in' : 'out'}">${game.alive[i] ? 'બાકી · in' : 'બહાર · out'}</span>
+          <span class="roster-state ${game.alive[i] ? 'in' : 'out'}">${game.alive[i] ? 'બાકી<span class="en"> · in</span>' : 'બહાર<span class="en"> · out</span>'}</span>
         </span>
       </div>`).join('');
     return `
@@ -580,7 +613,7 @@
           : 'ઈમ્પોસ્ટર બહુમતીમાં આવી ગયા <span class="en">Imposters reached parity</span>'}</p>
       </div>
       <div class="word-reveal">
-        <span class="word-cat">${c ? c.gu + ' · ' + c.en : ''}</span>
+        <span class="word-cat">${c ? c.gu + '<span class="en"> · ' + c.en + '</span>' : ''}</span>
         <p class="word-gu">${game.word.gu} <span class="word-en">(${game.word.en})</span></p>
       </div>
       <div class="roster">${roster}</div>`;
@@ -651,7 +684,7 @@
     updateTimerUI();
     if (timerRemaining <= 0) {
       stopTimer();
-      toast('સમય પૂરો! (Time up)');
+      toast(t('સમય પૂરો!', 'Time up'));
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
   }
@@ -709,10 +742,10 @@
   }
 
   $('#btn-clear-history').addEventListener('click', async () => {
-    if (!confirm('બધો ઇતિહાસ કાઢી નાખવો છે? (Clear all history?)')) return;
+    if (!confirm(t('બધો ઇતિહાસ કાઢી નાખવો છે?', 'Clear all history?'))) return;
     await DB.clearHistory();
     renderHistory();
-    toast('ઇતિહાસ સાફ થયો (History cleared)');
+    toast(t('ઇતિહાસ સાફ થયો', 'History cleared'));
   });
 
   // ================= PWA INSTALL =================
@@ -733,10 +766,12 @@
   // ================= INIT =================
   function init() {
     Icons.hydrate(document); // swap static [data-icon] placeholders for inline SVGs
-    buildCategorySelect();
+    loadLang();
+    // one-time listeners (kept out of the rebuildable render fns so they don't stack)
+    $('#sel-category').addEventListener('change', () => { config.category = $('#sel-category').value; });
+    $('#sel-lang').addEventListener('change', (e) => setLang(e.target.value));
     clampImposters();
-    renderSetup();
-    refreshPresetSelect();
+    applyLang(); // builds category + preset selects and renders setup for the current mode
     setTimer(timerDuration);
 
     if ('serviceWorker' in navigator) {

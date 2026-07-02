@@ -10,6 +10,8 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="css/style.css" />
+  <!-- apply the saved language mode before first paint (no flash of secondary text) -->
+  <script>try{if(localStorage.getItem('imposter-lang-mode')==='normal')document.documentElement.classList.add('lang-normal');}catch(e){}</script>
 </head>
 <body>
 
@@ -18,12 +20,21 @@
 
     <!-- ============ HOME ============ -->
     <section class="screen active" id="screen-home">
+      <div class="home-top">
+        <div class="lang-picker">
+          <span class="icon icon-s" data-icon="languages"></span>
+          <select id="sel-lang" class="lang-select" aria-label="ભાષા / Language">
+            <option value="hybrid">હાઇબ્રિડ (Hybrid)</option>
+            <option value="normal">સામાન્ય (Normal)</option>
+          </select>
+        </div>
+      </div>
       <div class="home-hero">
         <div class="logo-mark">
           <span class="icon icon-xl" data-icon="mask"></span>
         </div>
         <h1 class="title">ઈમ્પોસ્ટર</h1>
-        <p class="subtitle">ગુજરાતી પાર્ટી ગેમ <span class="sep">·</span> Gujarati party game</p>
+        <p class="subtitle">ગુજરાતી પાર્ટી ગેમ<span class="en"> <span class="sep">·</span> Gujarati party game</span></p>
       </div>
       <div class="home-actions">
         <button class="btn btn-primary btn-lg" data-nav="setup">

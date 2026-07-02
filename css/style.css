@@ -50,6 +50,10 @@ html, body {
 .en { font-size: 0.72em; color: var(--text-3); font-weight: 500; }
 .sep { color: var(--text-3); }
 
+/* Normal language mode: show only the primary language (hide secondary text). */
+html.lang-normal .en,
+html.lang-normal .word-en { display: none; }
+
 :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 
 /* ---- Icons ---- */
@@ -122,7 +126,34 @@ html, body {
 }
 
 /* ---- Home ---- */
-.home-hero { text-align: center; margin: auto 0; padding: 10vh 0 4vh; }
+.home-top { display: flex; justify-content: flex-end; padding-top: 4px; }
+.lang-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+.lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0 22px 0 0;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236d7490' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right center;
+}
+.lang-select:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+.home-hero { text-align: center; margin: auto 0; padding: 6vh 0 4vh; }
 .logo-mark {
   width: 92px;
   height: 92px;

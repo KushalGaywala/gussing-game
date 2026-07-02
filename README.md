@@ -22,6 +22,7 @@ installable **PWA** — no accounts, no server, no network required.
 - **Score history** — every finished game (word, players, imposters, winner) stored locally (IndexedDB).
 - **Hold-to-peek card** pass-the-phone flow — the word is only visible while the card is held down, so passing the phone is cheat-proof.
 - **Round-based voting** — each round the group votes a player out or skips; ejected roles are revealed and win conditions (all imposters out ⇒ civilians win; imposters reach parity ⇒ imposters win) are checked automatically. Suggesting and discussion rounds alternate until someone wins.
+- **Language modes** — a dropdown in the top-right toggles between **Hybrid** (Gujarati primary + English secondary, the default) and **Normal** (Gujarati only). The choice is saved and applied everywhere, with no flash of secondary text on load.
 - Discussion **timer** with quick presets, progress bar and vibration on time-up.
 - **Offline-first PWA** — service worker caches the whole app shell.
 - **Installable** on Android/desktop; foundations included for **TWA** (Trusted Web Activity).
