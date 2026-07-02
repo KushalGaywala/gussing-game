@@ -46,6 +46,89 @@
   const MIN_PLAYERS = 3;
   const MAX_PLAYERS = 20;
 
+  // ---------- language (primary + secondary, via I18n) ----------
+  // Any registered language can fill the primary slot and any (or none) the
+  // secondary slot. I18n renders the static [data-i18n*] markup; the helpers
+  // here rebuild the pieces assembled in JS.
+  //   biSpan(key) -> "primary<span class=en>secondary</span>"  (inline secondary)
+  //   biBr(key)   -> same but secondary on its own line
+  //   secEl(el,key) -> fill a dedicated secondary element / hide it when none
+  function biSpan(key) { const sv = I18n.s(key); return I18n.t(key) + (sv ? ' ' + I18n.secSpan(sv) : ''); }
+  function biBr(key) { const sv = I18n.s(key); return I18n.t(key) + (sv ? '<br/>' + I18n.secSpan(sv) : ''); }
+  function secEl(el, key) {
+    const sv = I18n.s(key);
+    if (sv) { el.textContent = sv; el.hidden = false; } else { el.hidden = true; }
+  }
+  function pairOf(obj) { return I18n.secondary ? `${I18n.of(obj)} (${I18n.ofs(obj)})` : I18n.of(obj); }
+
+  // The picker is a pill button that opens a sheet with a Primary list and a
+  // Secondary list (None + every language). Both are rebuilt from I18n.LANGS,
+  // so any registered language appears; scrolling handles a long list.
+  function renderLangButton() {
+    const langs = I18n.LANGS;
+    const label = I18n.secondary
+      ? `${langs[I18n.primary]} · ${langs[I18n.secondary]}`
+      : langs[I18n.primary];
+    $('#lang-btn-label').textContent = label || I18n.primary;
+  }
+
+  function langRow(slot, code, label, selected) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lang-row' + (selected ? ' selected' : '');
+    b.dataset.code = code;
+    b.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    b.innerHTML = `<span class="lang-row-name">${label}</span>` + (selected ? Icons.svg('check', 'icon-s') : '');
+    b.addEventListener('click', () => chooseLang(slot, code));
+    return b;
+  }
+
+  function buildLangSheet() {
+    const langs = I18n.LANGS;
+    $('#lang-sheet-title').textContent = I18n.t('language_title');
+    $('#lang-primary-label').textContent = I18n.t('primary_label');
+    $('#lang-secondary-label').textContent = I18n.t('secondary_label');
+
+    const pri = $('#lang-list-primary');
+    pri.innerHTML = '';
+    Object.keys(langs).forEach((code) => {
+      pri.appendChild(langRow('primary', code, langs[code], I18n.primary === code));
+    });
+
+    const sec = $('#lang-list-secondary');
+    sec.innerHTML = '';
+    sec.appendChild(langRow('secondary', '', I18n.t('none'), !I18n.secondary));
+    Object.keys(langs).forEach((code) => {
+      if (code === I18n.primary) return; // can't be both slots
+      sec.appendChild(langRow('secondary', code, langs[code], I18n.secondary === code));
+    });
+  }
+
+  function chooseLang(slot, code) {
+    if (slot === 'primary') {
+      // picking the current secondary as primary swaps the two, rather than
+      // dropping the secondary
+      const newS = code === I18n.secondary ? I18n.primary : I18n.secondary;
+      I18n.set(code, newS);
+    } else {
+      I18n.set(I18n.primary, code);
+    }
+    applyLang(); // live-updates the app + refreshes the open sheet's checkmarks
+  }
+
+  function openLangSheet() { buildLangSheet(); $('#lang-sheet').hidden = false; }
+  function closeLangSheet() { $('#lang-sheet').hidden = true; }
+
+  function applyLang() {
+    I18n.apply(document);   // static [data-i18n*] markup
+    renderLangButton();
+    if (!$('#lang-sheet').hidden) buildLangSheet(); // refresh sheet if open
+    buildCategorySelect();  // <option> text can't use data-i18n
+    refreshPresetSelect();
+    renderSetup();          // imposter hint + name placeholders
+    $('#preset-name').placeholder = I18n.tt('preset_name_ph');
+  }
+
   // ---------- current game state ----------
   let game = null; // { word, category, roles[], names[], index }
 
@@ -60,7 +143,7 @@
     }
     const quit = e.target.closest('[data-quit]');
     if (quit) {
-      if (!game || confirm('રમત છોડવી છે? (Quit this game?)')) {
+      if (!game || confirm(I18n.tt('quit_confirm'))) {
         stopTimer();
         game = null;
         showScreen('home');
@@ -79,8 +162,8 @@
     $('#val-players').textContent = config.players;
     $('#val-imposters').textContent = config.imposters;
     const maxImp = Math.max(1, config.players - 1);
-    $('#imposter-hint').textContent =
-      `૧ થી ${maxImp} સુધી (${config.players} ખેલાડીઓ માટે) · 1–${maxImp} allowed`;
+    const fill = (str) => str.replace('{max}', maxImp).replace('{p}', config.players);
+    $('#imposter-hint').innerHTML = fill(I18n.t('imp_hint')) + I18n.secSpan(fill(I18n.s('imp_hint')));
     renderNameInputs();
   }
 
@@ -91,7 +174,9 @@
       const inp = document.createElement('input');
       inp.className = 'input';
       inp.type = 'text';
-      inp.placeholder = `ખેલાડી ${i + 1} (Player ${i + 1})`;
+      inp.placeholder = I18n.secondary
+        ? `${I18n.t('player')} ${i + 1} (${I18n.s('player')} ${i + 1})`
+        : `${I18n.t('player')} ${i + 1}`;
       inp.value = config.names[i] || '';
       inp.dataset.idx = i;
       inp.addEventListener('input', () => { config.names[i] = inp.value.trim(); });
@@ -104,17 +189,16 @@
     sel.innerHTML = '';
     const optAll = document.createElement('option');
     optAll.value = 'all';
-    optAll.textContent = 'બધી શ્રેણી (All categories)';
+    optAll.textContent = I18n.tt('all_categories');
     sel.appendChild(optAll);
     Object.keys(CATEGORIES).forEach((key) => {
       const c = CATEGORIES[key];
       const o = document.createElement('option');
       o.value = key;
-      o.textContent = `${c.gu} (${c.en})`;
+      o.textContent = pairOf(c);
       sel.appendChild(o);
     });
     sel.value = config.category;
-    sel.addEventListener('change', () => { config.category = sel.value; });
   }
 
   // steppers
@@ -140,11 +224,15 @@
   async function refreshPresetSelect() {
     const sel = $('#sel-preset');
     const presets = await DB.getPresets();
-    sel.innerHTML = '<option value="">પ્રીસેટ પસંદ કરો… (Load preset)</option>';
+    sel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = I18n.tt('load_preset_ph');
+    sel.appendChild(ph);
     presets.forEach((p) => {
       const o = document.createElement('option');
       o.value = p.id;
-      o.textContent = `${p.name} — ${p.players} ખેલાડી · ${p.imposters} ઈમ્પોસ્ટર`;
+      o.textContent = `${p.name} — ${p.players} ${I18n.t('players_count')} · ${p.imposters} ${I18n.t('imposters_count')}`;
       sel.appendChild(o);
     });
     sel._presets = presets;
@@ -152,7 +240,7 @@
 
   $('#btn-save-preset').addEventListener('click', async () => {
     const name = $('#preset-name').value.trim();
-    if (!name) { toast('પ્રીસેટનું નામ લખો (Enter a name)'); return; }
+    if (!name) { toast(I18n.tt('enter_name')); return; }
     await DB.addPreset({
       name,
       players: config.players,
@@ -162,7 +250,7 @@
     });
     $('#preset-name').value = '';
     await refreshPresetSelect();
-    toast('પ્રીસેટ સાચવ્યું (Preset saved)');
+    toast(I18n.tt('preset_saved'));
   });
 
   $('#btn-load-preset').addEventListener('click', () => {
@@ -179,7 +267,7 @@
     clampImposters();
     $('#sel-category').value = config.category;
     renderSetup();
-    toast('પ્રીસેટ લોડ થયું (Preset loaded)');
+    toast(I18n.tt('preset_loaded'));
   });
 
   // ================= START GAME =================
@@ -189,7 +277,7 @@
     if (config.category !== 'all') {
       pool = VOCAB.filter((w) => w.cat === config.category);
     }
-    if (!pool.length) { toast('આ શ્રેણીમાં શબ્દ નથી'); return; }
+    if (!pool.length) { toast(I18n.tt('no_words')); return; }
 
     const word = pool[Math.floor(Math.random() * pool.length)];
 
@@ -200,7 +288,7 @@
 
     const names = [];
     for (let i = 0; i < config.players; i++) {
-      names.push((config.names[i] && config.names[i].trim()) || `ખેલાડી ${i + 1}`);
+      names.push((config.names[i] && config.names[i].trim()) || `${I18n.t('player')} ${i + 1}`);
     }
 
     game = { word, category: config.category, roles, names, index: 0 };
@@ -211,9 +299,7 @@
   // ================= REVEAL (pass the phone) =================
   function startRevealFor(i) {
     game.index = i;
-    $('#pass-instruction').textContent = i === 0
-      ? 'ફોન આ ખેલાડીને આપો (Pass the phone to)'
-      : 'હવે ફોન આગળ આપો (Pass the phone to)';
+    $('#pass-instruction').textContent = I18n.tt(i === 0 ? 'pass_to_first' : 'pass_to_next');
     $('#pass-player').textContent = game.names[i];
     $('#turn-count').textContent = `${i + 1} / ${game.names.length}`;
     renderRevealDots();
@@ -224,9 +310,7 @@
     const next = $('#btn-next-player');
     next.disabled = true;
     const last = i >= game.names.length - 1;
-    $('#btn-next-label').innerHTML = last
-      ? 'ચર્ચા શરૂ કરો<span class="en">Start discussion</span>'
-      : 'આગળ આપો<span class="en">Next player</span>';
+    $('#btn-next-label').innerHTML = biSpan(last ? 'start_discussion' : 'next_player');
   }
 
   function renderRevealDots() {
@@ -245,17 +329,17 @@
     if (game.roles[i]) {
       content.innerHTML = `
         <div class="imposter-card">
-          <div class="impo-mark"><svg class="icon icon-l"><use href="#i-mask"/></svg></div>
-          <p class="impo-title">તમે ઈમ્પોસ્ટર છો</p>
-          <p class="impo-sub">શબ્દ જાણ્યા વગર બહાનું બનાવો!<br/><span class="en">You are the imposter — bluff it!</span></p>
+          <div class="impo-mark">${Icons.svg('mask', 'icon-l')}</div>
+          <p class="impo-title">${biSpan('imposter_title')}</p>
+          <p class="impo-sub">${biBr('imposter_sub')}</p>
         </div>`;
     } else {
       const c = CATEGORIES[game.word.cat];
       content.innerHTML = `
         <div>
-          <span class="word-cat">${c ? c.gu + ' · ' + c.en : ''}</span>
-          <p class="word-gu">${game.word.gu}</p>
-          <p class="word-en">(${game.word.en})</p>
+          <span class="word-cat">${c ? I18n.of(c) + I18n.secSpan(' · ' + I18n.ofs(c)) : ''}</span>
+          <p class="word-gu">${I18n.of(game.word)}</p>
+          ${I18n.secondary ? `<p class="word-en">(${I18n.ofs(game.word)})</p>` : ''}
         </div>`;
     }
   }
@@ -408,25 +492,24 @@
         // role was already revealed when this player was ejected
         chip.className = 'p-chip out' + (game.roles[i] ? ' was-imp' : '');
         chip.innerHTML = `<span class="p-name">${n}</span>` +
-          (game.roles[i] ? '<svg class="icon icon-s"><use href="#i-mask"/></svg>' : '');
+          (game.roles[i] ? Icons.svg('mask', 'icon-s') : '');
       }
       wrap.appendChild(chip);
     });
     const left = game.alive.filter(Boolean).length;
     const sum = document.createElement('p');
     sum.className = 'alive-sum';
-    sum.innerHTML = `${left} ખેલાડી બાકી <span class="en">${left} still in play</span>`;
+    sum.innerHTML = `${left} ${I18n.t('players_left')}` + I18n.secSpan(`${left} ${I18n.s('players_left')}`);
     wrap.appendChild(sum);
   }
 
   function renderRound() {
     const suggest = game.phase === 'suggest';
-    $('#round-chip').textContent = `રાઉન્ડ ${game.round}`;
-    $('#round-title').textContent = suggest ? 'સૂચન રાઉન્ડ' : 'ચર્ચા રાઉન્ડ';
-    $('#round-title-en').textContent = suggest ? 'Suggesting round' : 'Discussion round';
-    $('#round-desc').innerHTML = suggest
-      ? 'દરેક ખેલાડી કારણ સાથે સૂચવે કે કોણ શંકાસ્પદ છે.<br/><span class="en">Each player suggests who seems suspicious — with a reason.</span>'
-      : 'દરેક ખેલાડી શબ્દ વિશે એક સંકેત આપે — શબ્દ બોલ્યા વગર. પછી મત આપો કે રાઉન્ડ છોડો.<br/><span class="en">Each gives one clue about the word — then vote or skip.</span>';
+    const titleKey = suggest ? 'round_suggest_title' : 'round_discuss_title';
+    $('#round-chip').textContent = `${I18n.t('round_word')} ${game.round}`;
+    $('#round-title').textContent = I18n.t(titleKey);
+    secEl($('#round-title-en'), titleKey);
+    $('#round-desc').innerHTML = biBr(suggest ? 'suggest_desc' : 'discuss_desc');
 
     renderAlive($('#alive-chips'));
 
@@ -464,14 +547,14 @@
   $('#btn-skip-round').addEventListener('click', () => {
     if (!game) return;
     stopTimer();
-    toast('રાઉન્ડ છોડ્યો (Round skipped)');
+    toast(I18n.tt('round_skipped'));
     nextRound();
   });
 
   // ---- vote screen ----
   function renderVote() {
     voteSelection = null;
-    $('#vote-chip').textContent = `રાઉન્ડ ${game.round}`;
+    $('#vote-chip').textContent = `${I18n.t('round_word')} ${game.round}`;
     const list = $('#vote-list');
     list.innerHTML = '';
     game.names.forEach((n, i) => {
@@ -524,25 +607,26 @@
 
     if (winner) {
       const civWin = winner === 'civilians';
-      $('#outcome-title').textContent = civWin ? 'ખેલાડીઓ જીત્યા!' : 'ઈમ્પોસ્ટર જીત્યા!';
-      $('#outcome-title-en').textContent = civWin ? 'Civilians win' : 'Imposters win';
+      const key = civWin ? 'civilians_win' : 'imposters_win';
+      $('#outcome-title').textContent = I18n.t(key) + '!';
+      secEl($('#outcome-title-en'), key);
       body.innerHTML = gameOverBody(winner);
       if (!game.saved) {
         game.saved = true;
         saveResult(winner);
-        toast(civWin ? 'ખેલાડીઓ જીત્યા! (Civilians win)' : 'ઈમ્પોસ્ટર જીત્યા! (Imposters win)');
+        toast(I18n.tt(key));
       }
-      const again = mkBtn('btn btn-primary btn-lg', 'i-rotate', 'નવી રમત', 'New game');
+      const again = mkBtn('btn btn-primary btn-lg', 'rotate', 'new_game');
       again.addEventListener('click', () => { resetGame(); showScreen('setup'); });
-      const home = mkBtn('btn btn-ghost', 'i-back', 'મુખ્ય પાનું', 'Home');
+      const home = mkBtn('btn btn-ghost', 'back', 'home');
       home.addEventListener('click', () => { resetGame(); showScreen('home'); });
       actions.appendChild(again);
       actions.appendChild(home);
     } else {
-      $('#outcome-title').textContent = 'બહાર કાઢ્યો';
-      $('#outcome-title-en').textContent = 'Voted out';
+      $('#outcome-title').textContent = I18n.t('voted_out');
+      secEl($('#outcome-title-en'), 'voted_out');
       body.innerHTML = ejectBody(idx, wasImp);
-      const cont = mkBtn('btn btn-primary btn-lg', 'i-arrow-right', 'આગળનો રાઉન્ડ', 'Next round');
+      const cont = mkBtn('btn btn-primary btn-lg', 'arrow-right', 'next_round');
       cont.addEventListener('click', () => nextRound());
       actions.appendChild(cont);
     }
@@ -550,15 +634,15 @@
 
   function ejectBody(idx, wasImp) {
     const left = game.alive.filter(Boolean).length;
+    const notePri = `${left} ${I18n.t('players_left')} · ${I18n.t('game_continues')}`;
+    const noteSec = `${left} ${I18n.s('players_left')} · ${I18n.s('game_continues')}`;
     return `
       <div class="outcome-card ${wasImp ? 'good' : 'bad'}">
-        <div class="outcome-mark"><svg class="icon icon-l"><use href="#${wasImp ? 'i-mask' : 'i-users'}"/></svg></div>
+        <div class="outcome-mark">${Icons.svg(wasImp ? 'mask' : 'users', 'icon-l')}</div>
         <p class="outcome-name">${game.names[idx]}</p>
-        <p class="outcome-role">${wasImp
-          ? 'ઈમ્પોસ્ટર હતો! <span class="en">was an imposter</span>'
-          : 'નિર્દોષ ખેલાડી હતો <span class="en">was innocent</span>'}</p>
+        <p class="outcome-role">${biSpan(wasImp ? 'was_imposter' : 'was_innocent')}</p>
       </div>
-      <p class="outcome-note">${left} ખેલાડી બાકી · રમત ચાલુ છે<br/><span class="en">${left} players left — the game continues</span></p>`;
+      <p class="outcome-note">${notePri}${I18n.secondary ? '<br/>' + I18n.secSpan(noteSec) : ''}</p>`;
   }
 
   function gameOverBody(winner) {
@@ -568,29 +652,27 @@
       <div class="roster-row">
         <span class="roster-name">${n}</span>
         <span class="roster-tags">
-          ${game.roles[i] ? '<span class="chip chip-danger">ઈમ્પોસ્ટર</span>' : '<span class="chip chip-civ">ખેલાડી</span>'}
-          <span class="roster-state ${game.alive[i] ? 'in' : 'out'}">${game.alive[i] ? 'બાકી · in' : 'બહાર · out'}</span>
+          <span class="chip ${game.roles[i] ? 'chip-danger' : 'chip-civ'}">${I18n.t(game.roles[i] ? 'imposter_role' : 'civilian_role')}</span>
+          <span class="roster-state ${game.alive[i] ? 'in' : 'out'}">${I18n.t(game.alive[i] ? 'in_play' : 'out_play')}${I18n.secSpan(' · ' + I18n.s(game.alive[i] ? 'in_play' : 'out_play'))}</span>
         </span>
       </div>`).join('');
     return `
       <div class="outcome-card ${civWin ? 'good' : 'bad'}">
-        <div class="outcome-mark"><svg class="icon icon-l"><use href="#${civWin ? 'i-users' : 'i-mask'}"/></svg></div>
-        <p class="outcome-role big">${civWin
-          ? 'બધા ઈમ્પોસ્ટર પકડાયા! <span class="en">All imposters caught</span>'
-          : 'ઈમ્પોસ્ટર બહુમતીમાં આવી ગયા <span class="en">Imposters reached parity</span>'}</p>
+        <div class="outcome-mark">${Icons.svg(civWin ? 'users' : 'mask', 'icon-l')}</div>
+        <p class="outcome-role big">${biSpan(civWin ? 'all_imposters_caught' : 'imposters_parity')}</p>
       </div>
       <div class="word-reveal">
-        <span class="word-cat">${c ? c.gu + ' · ' + c.en : ''}</span>
-        <p class="word-gu">${game.word.gu} <span class="word-en">(${game.word.en})</span></p>
+        <span class="word-cat">${c ? I18n.of(c) + I18n.secSpan(' · ' + I18n.ofs(c)) : ''}</span>
+        <p class="word-gu">${I18n.of(game.word)}${I18n.secondary ? ' <span class="word-en">(' + I18n.ofs(game.word) + ')</span>' : ''}</p>
       </div>
       <div class="roster">${roster}</div>`;
   }
 
-  function mkBtn(cls, icon, gu, en) {
+  function mkBtn(cls, icon, key) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = cls;
-    b.innerHTML = `<svg class="icon"><use href="#${icon}"/></svg><span class="btn-label">${gu}<span class="en">${en}</span></span>`;
+    b.innerHTML = `${Icons.svg(icon)}<span class="btn-label">${biSpan(key)}</span>`;
     return b;
   }
 
@@ -632,8 +714,8 @@
 
   function setToggleUI(running) {
     $('#timer-toggle').innerHTML = running
-      ? '<svg class="icon icon-s"><use href="#i-pause"/></svg><span>થોભો</span>'
-      : '<svg class="icon icon-s"><use href="#i-play"/></svg><span>શરૂ</span>';
+      ? Icons.svg('pause', 'icon-s') + `<span>${I18n.t('timer_pause')}</span>`
+      : Icons.svg('play', 'icon-s') + `<span>${I18n.t('timer_start')}</span>`;
   }
 
   function setTimer(sec) {
@@ -651,7 +733,7 @@
     updateTimerUI();
     if (timerRemaining <= 0) {
       stopTimer();
-      toast('સમય પૂરો! (Time up)');
+      toast(I18n.tt('time_up'));
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
   }
@@ -680,39 +762,43 @@
     const list = $('#history-list');
     const items = await DB.getHistory();
     if (!items.length) {
-      list.innerHTML = '<p class="empty">હજી કોઈ રમત નથી.<br/><span class="en">No games yet.</span></p>';
+      list.innerHTML = `<p class="empty">${biBr('no_games')}</p>`;
       return;
     }
     list.innerHTML = '';
     items.forEach((it) => {
       const d = new Date(it.date);
       const dateStr = d.toLocaleDateString('en-GB') + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+      // history stored the word as gu/en; show it in the current languages
+      const wordByLang = { gu: it.wordGu, en: it.wordEn };
+      const wordP = wordByLang[I18n.primary] || it.wordGu;
+      const wordS = I18n.secondary ? (wordByLang[I18n.secondary] || '') : '';
       const badge = it.winner === 'civilians'
-        ? '<span class="badge civ">ખેલાડીઓ જીત્યા</span>'
-        : '<span class="badge imp">ઈમ્પોસ્ટર જીત્યા</span>';
+        ? `<span class="badge civ">${I18n.t('civilians_win')}</span>`
+        : `<span class="badge imp">${I18n.t('imposters_win')}</span>`;
       const el = document.createElement('div');
       el.className = 'history-item';
       el.innerHTML = `
         <div class="h-top">
-          <span class="h-word">${it.wordGu} <span class="en">(${it.wordEn})</span></span>
+          <span class="h-word">${wordP}${wordS ? ' ' + I18n.secSpan('(' + wordS + ')') : ''}</span>
           <span class="h-date">${dateStr}</span>
         </div>
         <div class="h-meta">
-          <span class="meta-pill">${it.players} ખેલાડી</span>
-          <span class="meta-pill">${it.imposters} ઈમ્પોસ્ટર</span>
-          ${it.rounds ? `<span class="meta-pill">${it.rounds} રાઉન્ડ</span>` : ''}
+          <span class="meta-pill">${it.players} ${I18n.t('players_count')}</span>
+          <span class="meta-pill">${it.imposters} ${I18n.t('imposters_count')}</span>
+          ${it.rounds ? `<span class="meta-pill">${it.rounds} ${I18n.t('rounds_count')}</span>` : ''}
           ${badge}
         </div>
-        <div class="h-imp">ઈમ્પોસ્ટર: ${(it.imposterNames || []).join(', ') || '—'}</div>`;
+        <div class="h-imp">${I18n.t('imposters_label')}: ${(it.imposterNames || []).join(', ') || '—'}</div>`;
       list.appendChild(el);
     });
   }
 
   $('#btn-clear-history').addEventListener('click', async () => {
-    if (!confirm('બધો ઇતિહાસ કાઢી નાખવો છે? (Clear all history?)')) return;
+    if (!confirm(I18n.tt('clear_history_confirm'))) return;
     await DB.clearHistory();
     renderHistory();
-    toast('ઇતિહાસ સાફ થયો (History cleared)');
+    toast(I18n.tt('history_cleared'));
   });
 
   // ================= PWA INSTALL =================
@@ -732,10 +818,16 @@
 
   // ================= INIT =================
   function init() {
-    buildCategorySelect();
+    Icons.hydrate(document); // swap static [data-icon] placeholders for inline SVGs
+    I18n.load();
+    // one-time listeners (kept out of the rebuildable render fns so they don't stack)
+    $('#sel-category').addEventListener('change', () => { config.category = $('#sel-category').value; });
+    $('#lang-btn').addEventListener('click', openLangSheet);
+    $('#lang-sheet-close').addEventListener('click', closeLangSheet);
+    $('#lang-sheet').addEventListener('click', (e) => { if (e.target === $('#lang-sheet')) closeLangSheet(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#lang-sheet').hidden) closeLangSheet(); });
     clampImposters();
-    renderSetup();
-    refreshPresetSelect();
+    applyLang(); // renders static i18n, builds selects, renders setup for the current languages
     setTimer(timerDuration);
 
     if ('serviceWorker' in navigator) {

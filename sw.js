@@ -1,9 +1,18 @@
-/* Service worker — offline app shell caching (cache-first). */
-const CACHE = 'imposter-v4';
+/*
+ * Service worker — offline app shell.
+ *
+ * The app shell (HTML/CSS/JS) is served NETWORK-FIRST: the newest code always
+ * loads when online, falling back to cache offline. This avoids the stale-code
+ * trap of a pure cache-first worker (e.g. new HTML paired with an old cached
+ * script). Other assets (icons, images, manifest) stay CACHE-FIRST for speed.
+ */
+const CACHE = 'imposter-v9';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
+  './js/icons.js',
+  './js/i18n.js',
   './js/vocab.js',
   './js/db.js',
   './js/app.js',
@@ -27,22 +36,43 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+function isShell(url) {
+  return url.origin === self.location.origin &&
+    (url.pathname === '/' || /\.(?:html|js|css)$/.test(url.pathname));
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
-  e.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req)
+  const url = new URL(req.url);
+
+  if (req.mode === 'navigate' || isShell(url)) {
+    // network-first: freshest code online, cached shell offline
+    e.respondWith(
+      fetch(req)
         .then((res) => {
-          // runtime-cache same-origin GETs
-          if (res && res.ok && new URL(req.url).origin === self.location.origin) {
+          if (res && res.ok) {
             const copy = res.clone();
             caches.open(CACHE).then((c) => c.put(req, copy));
           }
           return res;
         })
-        .catch(() => cached);
+        .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // cache-first for everything else (icons, images, manifest)
+  e.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        if (res && res.ok && url.origin === self.location.origin) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      });
     })
   );
 });
