@@ -7,9 +7,9 @@
   <meta name="description" content="ગુજરાતી ઈમ્પોસ્ટર પાર્ટી ગેમ — Gujarati Imposter party game" />
   <title>ઈમ્પોસ્ટર — Imposter</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon.svg?v=10" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=10" />
-  <link rel="stylesheet" href="css/style.css?v=10" />
+  <link rel="icon" href="icons/icon.svg?v=11" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=11" />
+  <link rel="stylesheet" href="css/style.css?v=11" />
   <!-- apply saved secondary-language visibility before first paint (no flash) -->
   <script>try{var s=localStorage.getItem('imposter-lang-secondary');if(s===null&&localStorage.getItem('imposter-lang-mode')==='normal')s='';if(s==='')document.documentElement.classList.add('no-secondary');}catch(e){}</script>
 </head>
@@ -252,7 +252,7 @@
       </div>
     </section>
 
-    <!-- ============ VOTE (pick who to eliminate) ============ -->
+    <!-- ============ VOTE (pass-the-phone secret ballot, one voter at a time) ============ -->
     <section class="screen" id="screen-vote">
       <header class="bar">
         <button class="icon-btn" id="btn-vote-back" aria-label="Back">
@@ -262,18 +262,23 @@
           <h2 data-i18n-pri="vote_title">કોને બહાર કાઢવો?</h2>
           <span class="en" data-i18n-sec="vote_title">Vote someone out</span>
         </div>
-        <span class="turn-chip" id="vote-chip">રાઉન્ડ 1</span>
+        <span class="turn-chip" id="vote-turn-count">1 / 4</span>
       </header>
 
       <div class="play-wrap">
-        <p class="play-desc" data-i18n="vote_desc" data-i18n-sep="br">જૂથે જેને સૌથી વધુ મત આપ્યા તે ખેલાડી પસંદ કરો.</p>
+        <div class="pass-banner">
+          <p class="pass-instruction" id="vote-pass-instruction">ફોન આ ખેલાડીને આપો</p>
+          <h2 class="pass-player" id="vote-voter">ખેલાડી 1</h2>
+        </div>
+        <p class="play-desc" data-i18n="vote_ballot_desc" data-i18n-sep="br">ગુપ્ત રીતે એક ખેલાડીને મત આપો, અથવા છોડો — પછી ફોન આગળ આપો.</p>
         <div class="vote-list" id="vote-list"></div>
+        <div class="dots" id="vote-dots"></div>
       </div>
 
       <div class="sticky-footer">
-        <button class="btn btn-lose btn-lg" id="btn-confirm-vote" disabled>
-          <span class="icon" data-icon="mask"></span>
-          <span class="btn-label" data-i18n="vote_out">બહાર કાઢો</span>
+        <button class="btn btn-primary btn-lg" id="btn-confirm-vote" disabled>
+          <span class="icon" data-icon="check"></span>
+          <span class="btn-label" id="btn-confirm-vote-label" data-i18n="vote_lock_in">મત નોંધો</span>
         </button>
       </div>
     </section>
@@ -343,7 +348,7 @@
         </div>
         <div class="step">
           <span class="step-num">5</span>
-          <p data-i18n="how_5" data-i18n-sep="br"><b>મત આપો કે છોડો:</b> દરેક રાઉન્ડમાં જૂથ કાં તો એક ખેલાડીને બહાર કાઢવા <b>મત આપે</b>, અથવા <b>રાઉન્ડ છોડે</b>. બહાર નીકળેલો ખેલાડી ઈમ્પોસ્ટર હતો કે નિર્દોષ તે ખૂલે.<br/><span class="en">Each round the group either <b>votes</b> a player out or <b>skips</b>. The ejected player's role is revealed.</span></p>
+          <p data-i18n="how_5" data-i18n-sep="br"><b>મત આપો કે છોડો:</b> ફોન એક-એક કરીને ફેરવો — દરેક ખેલાડી ગુપ્ત રીતે કોઈને બહાર કાઢવા મત આપે કે <b>છોડે</b>. સૌથી વધુ મત મેળવનાર બહાર; બરાબરી થાય તો કોઈ નહીં. બહાર નીકળેલાનું પાત્ર ખૂલે.<br/><span class="en">Pass the phone around — each player secretly votes someone out or <b>skips</b>. The most-voted player leaves (a tie ejects no one); their role is revealed.</span></p>
         </div>
         <div class="step">
           <span class="step-num">6</span>
@@ -379,10 +384,10 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="js/icons.js?v=10"></script>
-  <script src="js/i18n.js?v=10"></script>
-  <script src="js/vocab.js?v=10"></script>
-  <script src="js/db.js?v=10"></script>
-  <script src="js/app.js?v=10"></script>
+  <script src="js/icons.js?v=11"></script>
+  <script src="js/i18n.js?v=11"></script>
+  <script src="js/vocab.js?v=11"></script>
+  <script src="js/db.js?v=11"></script>
+  <script src="js/app.js?v=11"></script>
 </body>
 </html>

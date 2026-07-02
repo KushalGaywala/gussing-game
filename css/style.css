@@ -634,6 +634,8 @@ html.no-secondary [data-i18n-sec] { display: none; }
   border: 2px solid var(--border-strong);
   transition: border-color 0.15s ease, background 0.15s ease;
 }
+.vote-name { display: inline-flex; align-items: center; gap: 9px; min-width: 0; }
+.vote-name .icon { flex: none; color: var(--text-3); }
 .vote-option.selected {
   border-color: var(--danger);
   background: var(--danger-soft);
@@ -642,6 +644,57 @@ html.no-secondary [data-i18n-sec] { display: none; }
   border-color: var(--danger);
   background: radial-gradient(circle at center, var(--danger) 0 6px, transparent 7px);
 }
+/* Skip is a neutral choice (abstain), not a "vote out", so it reads calmer. */
+.vote-option.vote-skip { border-style: dashed; }
+.vote-option.vote-skip .vote-name { color: var(--text-2); font-weight: 700; }
+.vote-option.vote-skip.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.vote-option.vote-skip.selected .vote-name .icon { color: var(--accent-2); }
+.vote-option.vote-skip.selected .vote-radio {
+  border-color: var(--accent);
+  background: radial-gradient(circle at center, var(--accent) 0 6px, transparent 7px);
+}
+/* dots sit inside the (non-centering) play-wrap on the vote screen */
+#vote-dots { margin: 0 auto; }
+
+/* ---- vote distribution (shown on the outcome screen) ---- */
+.vote-dist {
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  padding: 14px 16px;
+}
+.vd-title { margin: 0 0 12px; font-size: 0.85rem; font-weight: 700; color: var(--text-2); }
+.vd-row { display: flex; align-items: center; gap: 10px; margin: 9px 0; }
+.vd-name {
+  flex: 0 0 32%;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vd-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.vd-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 0.4s ease;
+}
+.vd-count {
+  flex: none;
+  min-width: 1.4em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.vd-row.vd-skip .vd-name { color: var(--text-3); font-weight: 600; }
+.vd-row.vd-skip .vd-fill { background: var(--surface-3); border: 1px solid var(--border-strong); }
 
 /* ---- outcome (ejection reveal / game over) ---- */
 #outcome-body { display: flex; flex-direction: column; gap: 14px; }
