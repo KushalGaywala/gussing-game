@@ -1,22 +1,24 @@
 /*
  * Service worker — offline app shell.
  *
- * The app shell (HTML/CSS/JS) is served NETWORK-FIRST: the newest code always
- * loads when online, falling back to cache offline. This avoids the stale-code
- * trap of a pure cache-first worker (e.g. new HTML paired with an old cached
- * script). Other assets (icons, images, manifest) stay CACHE-FIRST for speed.
+ * The shell (HTML/CSS/JS) is served NETWORK-FIRST so the newest code loads when
+ * online, with the cache as the offline fallback. On update it clears old caches
+ * and refreshes any open page onto the fresh shell. Asset URLs are versioned
+ * (?v=) and served no-cache by nginx, so a deploy can't leave a client running
+ * new HTML against a stale cached script.
  */
-const CACHE = 'imposter-v9';
+const VERSION = '10';
+const CACHE = 'imposter-v' + VERSION;
 const ASSETS = [
   './',
   './index.html',
-  './css/style.css',
-  './js/icons.js',
-  './js/i18n.js',
-  './js/vocab.js',
-  './js/db.js',
-  './js/app.js',
   './manifest.webmanifest',
+  `./css/style.css?v=${VERSION}`,
+  `./js/icons.js?v=${VERSION}`,
+  `./js/i18n.js?v=${VERSION}`,
+  `./js/vocab.js?v=${VERSION}`,
+  `./js/db.js?v=${VERSION}`,
+  `./js/app.js?v=${VERSION}`,
   './icons/icon.svg',
   './icons/icon-maskable.svg',
   './icons/icon-192.png',
@@ -29,11 +31,18 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    const stale = keys.filter((k) => k !== CACHE);
+    await Promise.all(stale.map((k) => caches.delete(k)));
+    await self.clients.claim();
+    // On an UPDATE (old caches existed), reload open pages so they run the fresh
+    // shell instead of whatever the previous worker had already served.
+    if (stale.length) {
+      const wins = await self.clients.matchAll({ type: 'window' });
+      await Promise.all(wins.map((w) => w.navigate(w.url).catch(() => {})));
+    }
+  })());
 });
 
 function isShell(url) {
@@ -57,22 +66,19 @@ self.addEventListener('fetch', (e) => {
           }
           return res;
         })
-        .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
+        .catch(() => caches.match(req, { ignoreSearch: true }).then((c) => c || caches.match('./index.html')))
     );
     return;
   }
 
-  // cache-first for everything else (icons, images, manifest)
+  // cache-first for other assets (icons, images, manifest)
   e.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((res) => {
-        if (res && res.ok && url.origin === self.location.origin) {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-        }
-        return res;
-      });
-    })
+    caches.match(req, { ignoreSearch: true }).then((cached) => cached || fetch(req).then((res) => {
+      if (res && res.ok && url.origin === self.location.origin) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+      }
+      return res;
+    }))
   );
 });
