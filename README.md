@@ -36,8 +36,11 @@ Vanilla HTML/CSS/JS — no build step, no dependencies.
 | `js/app.js` | Router, game logic, slide-to-reveal, timer |
 | `manifest.webmanifest` | PWA manifest |
 | `sw.js` | Service worker (offline cache) |
-| `icons/` | App icons (SVG, incl. maskable) |
+| `icons/` | App icons — SVG + raster PNG (192/512, incl. maskable) |
 | `.well-known/assetlinks.json` | TWA Digital Asset Links template |
+| `Dockerfile` / `nginx.conf` | One-click Coolify deploy (static site on nginx) |
+| `twa-manifest.json` | Bubblewrap TWA config (set your host) |
+| `scripts/build-twa.sh` | One-command Android TWA build + assetlinks wiring |
 
 ## Running locally
 
@@ -48,10 +51,62 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-## Packaging as a TWA (Android)
+Or run the exact production image locally:
 
-The PWA is TWA-ready. To wrap it in an Android app:
+```bash
+docker build -t imposter .
+docker run --rm -p 8080:8080 imposter
+# then open http://localhost:8080
+```
 
-1. Deploy this folder to an HTTPS host.
-2. Use [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap): `bubblewrap init --manifest https://your-host/manifest.webmanifest`.
-3. Fill in `.well-known/assetlinks.json` with your app's package name and signing SHA-256 fingerprint so the TWA verifies the domain.
+## Deploying on Coolify
+
+> For the full, step-by-step walkthrough (Coolify + Bubblewrap, verification,
+> troubleshooting) see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
+The repo ships a `Dockerfile` (nginx serving the static shell), so Coolify
+deploys it with **one click, no configuration**:
+
+1. In Coolify, **+ New → Resource → Public/Private Repository** and point it at
+   this repo.
+2. Coolify auto-detects the `Dockerfile` build pack. Leave the defaults — the
+   container listens on **port 8080** (already `EXPOSE`d).
+3. Set your domain and let Coolify provision HTTPS (Let's Encrypt). That's the
+   single deploy — the same container serves the PWA, the web manifest, and the
+   Digital Asset Links needed for the Android wrapper.
+
+The bundled [`nginx.conf`](nginx.conf) handles the PWA-specific details Coolify's
+generic static server would miss:
+
+- `manifest.webmanifest` → `application/manifest+json`
+- `.well-known/assetlinks.json` → `application/json`, CORS-open (TWA verification)
+- `sw.js` / manifest → `no-cache` so a redeploy never leaves clients on a stale shell
+- long-lived caching + gzip for `css/js/png/svg`
+
+## Packaging as a TWA (Android) — one command
+
+The PWA is TWA-ready: it ships raster icons (`icons/icon-512.png`,
+`icons/icon-maskable-512.png`, referenced from the manifest) that
+[Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap) requires, plus a
+pre-filled [`twa-manifest.json`](twa-manifest.json).
+
+After the site is deployed over HTTPS, build the Android app in one step:
+
+```bash
+./scripts/build-twa.sh yourdomain.com
+```
+
+The script:
+
+1. Rewrites `twa-manifest.json` to your host.
+2. Runs `bubblewrap build` (generating `android.keystore` on first run) to
+   produce the signed `.apk` (sideload) and `.aab` (Google Play).
+3. Reads the signing **SHA-256** from the keystore and writes the real
+   `.well-known/assetlinks.json`.
+
+Commit the updated `assetlinks.json` and **redeploy** so
+`https://yourdomain.com/.well-known/assetlinks.json` serves your fingerprint —
+domain verification (URL-bar-free launch) is live from that deploy on.
+
+Prereqs for the build step: Node 18+, JDK 17+, and the Android SDK (Bubblewrap
+can fetch its own on first run).
