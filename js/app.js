@@ -96,8 +96,16 @@
     $('#preset-name').placeholder = I18n.tt('preset_name_ph');
   }
 
-  function onLangChange() {
-    I18n.set($('#sel-primary').value, $('#sel-secondary').value);
+  function onPrimaryChange() {
+    const newP = $('#sel-primary').value;
+    // choosing the current secondary as primary swaps the two (old primary
+    // becomes the secondary) rather than dropping the secondary
+    const newS = newP === I18n.secondary ? I18n.primary : I18n.secondary;
+    I18n.set(newP, newS);
+    applyLang();
+  }
+  function onSecondaryChange() {
+    I18n.set(I18n.primary, $('#sel-secondary').value);
     applyLang();
   }
 
@@ -794,8 +802,8 @@
     I18n.load();
     // one-time listeners (kept out of the rebuildable render fns so they don't stack)
     $('#sel-category').addEventListener('change', () => { config.category = $('#sel-category').value; });
-    $('#sel-primary').addEventListener('change', onLangChange);
-    $('#sel-secondary').addEventListener('change', onLangChange);
+    $('#sel-primary').addEventListener('change', onPrimaryChange);
+    $('#sel-secondary').addEventListener('change', onSecondaryChange);
     clampImposters();
     applyLang(); // renders static i18n, builds selects, renders setup for the current languages
     setTimer(timerDuration);
