@@ -36,6 +36,7 @@ Vanilla HTML/CSS/JS — no build step, no dependencies.
 | `css/style.css` | Mobile-first dark theme |
 | `js/vocab.js` | Gujarati↔English word list + categories |
 | `js/db.js` | IndexedDB wrapper (presets + history) |
+| `js/icons.js` | Inline SVG icon set (self-contained, no sprite/`<use>`) |
 | `js/app.js` | Router, game logic, hold-to-peek card, timer |
 | `manifest.webmanifest` | PWA manifest |
 | `sw.js` | Service worker (offline cache) |

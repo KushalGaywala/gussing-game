@@ -245,7 +245,7 @@
     if (game.roles[i]) {
       content.innerHTML = `
         <div class="imposter-card">
-          <div class="impo-mark"><svg class="icon icon-l"><use href="#i-mask"/></svg></div>
+          <div class="impo-mark">${Icons.svg('mask', 'icon-l')}</div>
           <p class="impo-title">તમે ઈમ્પોસ્ટર છો</p>
           <p class="impo-sub">શબ્દ જાણ્યા વગર બહાનું બનાવો!<br/><span class="en">You are the imposter — bluff it!</span></p>
         </div>`;
@@ -408,7 +408,7 @@
         // role was already revealed when this player was ejected
         chip.className = 'p-chip out' + (game.roles[i] ? ' was-imp' : '');
         chip.innerHTML = `<span class="p-name">${n}</span>` +
-          (game.roles[i] ? '<svg class="icon icon-s"><use href="#i-mask"/></svg>' : '');
+          (game.roles[i] ? Icons.svg('mask', 'icon-s') : '');
       }
       wrap.appendChild(chip);
     });
@@ -532,9 +532,9 @@
         saveResult(winner);
         toast(civWin ? 'ખેલાડીઓ જીત્યા! (Civilians win)' : 'ઈમ્પોસ્ટર જીત્યા! (Imposters win)');
       }
-      const again = mkBtn('btn btn-primary btn-lg', 'i-rotate', 'નવી રમત', 'New game');
+      const again = mkBtn('btn btn-primary btn-lg', 'rotate', 'નવી રમત', 'New game');
       again.addEventListener('click', () => { resetGame(); showScreen('setup'); });
-      const home = mkBtn('btn btn-ghost', 'i-back', 'મુખ્ય પાનું', 'Home');
+      const home = mkBtn('btn btn-ghost', 'back', 'મુખ્ય પાનું', 'Home');
       home.addEventListener('click', () => { resetGame(); showScreen('home'); });
       actions.appendChild(again);
       actions.appendChild(home);
@@ -542,7 +542,7 @@
       $('#outcome-title').textContent = 'બહાર કાઢ્યો';
       $('#outcome-title-en').textContent = 'Voted out';
       body.innerHTML = ejectBody(idx, wasImp);
-      const cont = mkBtn('btn btn-primary btn-lg', 'i-arrow-right', 'આગળનો રાઉન્ડ', 'Next round');
+      const cont = mkBtn('btn btn-primary btn-lg', 'arrow-right', 'આગળનો રાઉન્ડ', 'Next round');
       cont.addEventListener('click', () => nextRound());
       actions.appendChild(cont);
     }
@@ -552,7 +552,7 @@
     const left = game.alive.filter(Boolean).length;
     return `
       <div class="outcome-card ${wasImp ? 'good' : 'bad'}">
-        <div class="outcome-mark"><svg class="icon icon-l"><use href="#${wasImp ? 'i-mask' : 'i-users'}"/></svg></div>
+        <div class="outcome-mark">${Icons.svg(wasImp ? 'mask' : 'users', 'icon-l')}</div>
         <p class="outcome-name">${game.names[idx]}</p>
         <p class="outcome-role">${wasImp
           ? 'ઈમ્પોસ્ટર હતો! <span class="en">was an imposter</span>'
@@ -574,7 +574,7 @@
       </div>`).join('');
     return `
       <div class="outcome-card ${civWin ? 'good' : 'bad'}">
-        <div class="outcome-mark"><svg class="icon icon-l"><use href="#${civWin ? 'i-users' : 'i-mask'}"/></svg></div>
+        <div class="outcome-mark">${Icons.svg(civWin ? 'users' : 'mask', 'icon-l')}</div>
         <p class="outcome-role big">${civWin
           ? 'બધા ઈમ્પોસ્ટર પકડાયા! <span class="en">All imposters caught</span>'
           : 'ઈમ્પોસ્ટર બહુમતીમાં આવી ગયા <span class="en">Imposters reached parity</span>'}</p>
@@ -590,7 +590,7 @@
     const b = document.createElement('button');
     b.type = 'button';
     b.className = cls;
-    b.innerHTML = `<svg class="icon"><use href="#${icon}"/></svg><span class="btn-label">${gu}<span class="en">${en}</span></span>`;
+    b.innerHTML = `${Icons.svg(icon)}<span class="btn-label">${gu}<span class="en">${en}</span></span>`;
     return b;
   }
 
@@ -632,8 +632,8 @@
 
   function setToggleUI(running) {
     $('#timer-toggle').innerHTML = running
-      ? '<svg class="icon icon-s"><use href="#i-pause"/></svg><span>થોભો</span>'
-      : '<svg class="icon icon-s"><use href="#i-play"/></svg><span>શરૂ</span>';
+      ? Icons.svg('pause', 'icon-s') + '<span>થોભો</span>'
+      : Icons.svg('play', 'icon-s') + '<span>શરૂ</span>';
   }
 
   function setTimer(sec) {
@@ -732,6 +732,7 @@
 
   // ================= INIT =================
   function init() {
+    Icons.hydrate(document); // swap static [data-icon] placeholders for inline SVGs
     buildCategorySelect();
     clampImposters();
     renderSetup();

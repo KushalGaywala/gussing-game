@@ -13,31 +13,6 @@
 </head>
 <body>
 
-  <!-- SVG icon sprite (stroke icons, inherit currentColor) -->
-  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
-    <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></symbol>
-    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
-    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></symbol>
-    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
-    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
-    <symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
-    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
-    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
-    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
-    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
-    <symbol id="i-mask" viewBox="0 0 24 24"><path d="M6.5 12.5 8 5.9A2.4 2.4 0 0 1 10.35 4h3.3A2.4 2.4 0 0 1 16 5.9l1.5 6.6"/><path d="M3 12.5h18"/><circle cx="7.6" cy="17.2" r="2.6"/><circle cx="16.4" cy="17.2" r="2.6"/><path d="M10.2 16.4c.6-.6 3-.6 3.6 0"/></symbol>
-    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
-    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
-    <symbol id="i-chevrons-down" viewBox="0 0 24 24"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></symbol>
-    <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></symbol>
-    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/></symbol>
-    <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
-    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
-    <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></symbol>
-    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><path d="M7.5 7.5h.01"/></symbol>
-    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
-  </svg>
 
   <div id="app">
 
@@ -45,29 +20,29 @@
     <section class="screen active" id="screen-home">
       <div class="home-hero">
         <div class="logo-mark">
-          <svg class="icon icon-xl"><use href="#i-mask"/></svg>
+          <span class="icon icon-xl" data-icon="mask"></span>
         </div>
         <h1 class="title">ઈમ્પોસ્ટર</h1>
         <p class="subtitle">ગુજરાતી પાર્ટી ગેમ <span class="sep">·</span> Gujarati party game</p>
       </div>
       <div class="home-actions">
         <button class="btn btn-primary btn-lg" data-nav="setup">
-          <svg class="icon"><use href="#i-play"/></svg>
+          <span class="icon" data-icon="play"></span>
           <span class="btn-label">નવી રમત<span class="en">New game</span></span>
         </button>
         <div class="btn-row">
           <button class="btn btn-ghost" data-nav="history">
-            <svg class="icon"><use href="#i-history"/></svg>
+            <span class="icon" data-icon="history"></span>
             <span class="btn-label">ઇતિહાસ<span class="en">History</span></span>
           </button>
           <button class="btn btn-ghost" data-nav="how">
-            <svg class="icon"><use href="#i-help"/></svg>
+            <span class="icon" data-icon="help"></span>
             <span class="btn-label">કેવી રીતે રમવું<span class="en">How to play</span></span>
           </button>
         </div>
         <p class="install-hint" id="install-hint" hidden>
           <button class="btn btn-outline" id="install-btn">
-            <svg class="icon"><use href="#i-download"/></svg>
+            <span class="icon" data-icon="download"></span>
             <span class="btn-label">ઍપ ઇન્સ્ટોલ કરો<span class="en">Install app</span></span>
           </button>
         </p>
@@ -78,7 +53,7 @@
     <section class="screen" id="screen-setup">
       <header class="bar">
         <button class="icon-btn" data-nav="home" aria-label="Back">
-          <svg class="icon"><use href="#i-back"/></svg>
+          <span class="icon" data-icon="back"></span>
         </button>
         <div class="bar-title">
           <h2>રમતની ગોઠવણ</h2>
@@ -88,32 +63,32 @@
 
       <div class="panel">
         <div class="panel-head">
-          <svg class="icon icon-s"><use href="#i-users"/></svg>
+          <span class="icon icon-s" data-icon="users"></span>
           <span class="panel-title">ખેલાડીઓ <span class="en">Players</span></span>
         </div>
         <div class="stepper" data-stepper="players">
-          <button class="step-btn" data-delta="-1" aria-label="Fewer players"><svg class="icon"><use href="#i-minus"/></svg></button>
+          <button class="step-btn" data-delta="-1" aria-label="Fewer players"><span class="icon" data-icon="minus"></span></button>
           <span class="step-value" id="val-players">4</span>
-          <button class="step-btn" data-delta="1" aria-label="More players"><svg class="icon"><use href="#i-plus"/></svg></button>
+          <button class="step-btn" data-delta="1" aria-label="More players"><span class="icon" data-icon="plus"></span></button>
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-head">
-          <svg class="icon icon-s"><use href="#i-mask"/></svg>
+          <span class="icon icon-s" data-icon="mask"></span>
           <span class="panel-title">ઈમ્પોસ્ટર <span class="en">Imposters</span></span>
         </div>
         <div class="stepper" data-stepper="imposters">
-          <button class="step-btn" data-delta="-1" aria-label="Fewer imposters"><svg class="icon"><use href="#i-minus"/></svg></button>
+          <button class="step-btn" data-delta="-1" aria-label="Fewer imposters"><span class="icon" data-icon="minus"></span></button>
           <span class="step-value" id="val-imposters">1</span>
-          <button class="step-btn" data-delta="1" aria-label="More imposters"><svg class="icon"><use href="#i-plus"/></svg></button>
+          <button class="step-btn" data-delta="1" aria-label="More imposters"><span class="icon" data-icon="plus"></span></button>
         </div>
         <p class="hint" id="imposter-hint"></p>
       </div>
 
       <div class="panel">
         <div class="panel-head">
-          <svg class="icon icon-s"><use href="#i-tag"/></svg>
+          <span class="icon icon-s" data-icon="tag"></span>
           <label class="panel-title" for="sel-category">શ્રેણી <span class="en">Category</span></label>
         </div>
         <select id="sel-category" class="select"></select>
@@ -121,7 +96,7 @@
 
       <div class="panel">
         <div class="panel-head">
-          <svg class="icon icon-s"><use href="#i-edit"/></svg>
+          <span class="icon icon-s" data-icon="edit"></span>
           <span class="panel-title">ખેલાડીઓના નામ <span class="en">Player names · optional</span></span>
         </div>
         <div id="name-inputs" class="name-inputs"></div>
@@ -129,7 +104,7 @@
 
       <div class="panel">
         <div class="panel-head">
-          <svg class="icon icon-s"><use href="#i-bookmark"/></svg>
+          <span class="icon icon-s" data-icon="bookmark"></span>
           <span class="panel-title">પ્રીસેટ <span class="en">Presets</span></span>
         </div>
         <div class="preset-rows">
@@ -140,7 +115,7 @@
           <div class="preset-row">
             <input type="text" id="preset-name" class="input" placeholder="પ્રીસેટનું નામ (Preset name)" />
             <button class="btn btn-outline btn-sm" id="btn-save-preset">
-              <svg class="icon icon-s"><use href="#i-save"/></svg>
+              <span class="icon icon-s" data-icon="save"></span>
               સાચવો
             </button>
           </div>
@@ -149,7 +124,7 @@
 
       <div class="sticky-footer">
         <button class="btn btn-primary btn-lg" id="btn-start">
-          <svg class="icon"><use href="#i-play"/></svg>
+          <span class="icon" data-icon="play"></span>
           <span class="btn-label">રમત શરૂ કરો<span class="en">Start game</span></span>
         </button>
       </div>
@@ -159,7 +134,7 @@
     <section class="screen" id="screen-reveal">
       <header class="bar">
         <button class="icon-btn" data-quit aria-label="Quit game">
-          <svg class="icon"><use href="#i-x"/></svg>
+          <span class="icon" data-icon="x"></span>
         </button>
         <div class="bar-title">
           <h2>શબ્દ જુઓ</h2>
@@ -181,16 +156,16 @@
           </div>
           <div class="peek-cover" id="peek-cover">
             <div class="cover-seen" id="cover-seen" hidden>
-              <svg class="icon icon-s"><use href="#i-check"/></svg>
+              <span class="icon icon-s" data-icon="check"></span>
               જોયું · Seen
             </div>
             <div class="cover-mark">
-              <svg class="icon icon-l"><use href="#i-mask"/></svg>
+              <span class="icon icon-l" data-icon="mask"></span>
             </div>
             <p class="cover-title">કાર્ડ પકડીને નીચે ખેંચો</p>
             <p class="cover-sub en">Hold &amp; pull down to peek</p>
             <div class="cover-chevrons">
-              <svg class="icon"><use href="#i-chevrons-down"/></svg>
+              <span class="icon" data-icon="chevrons-down"></span>
             </div>
           </div>
         </div>
@@ -200,7 +175,7 @@
         <div class="dots" id="reveal-dots"></div>
 
         <button class="btn btn-primary btn-lg" id="btn-next-player" disabled>
-          <svg class="icon"><use href="#i-arrow-right"/></svg>
+          <span class="icon" data-icon="arrow-right"></span>
           <span class="btn-label" id="btn-next-label">આગળ આપો<span class="en">Next player</span></span>
         </button>
       </div>
@@ -210,7 +185,7 @@
     <section class="screen" id="screen-round">
       <header class="bar">
         <button class="icon-btn" data-quit aria-label="Quit game">
-          <svg class="icon"><use href="#i-x"/></svg>
+          <span class="icon" data-icon="x"></span>
         </button>
         <div class="bar-title">
           <h2 id="round-title">ચર્ચા રાઉન્ડ</h2>
@@ -224,7 +199,7 @@
 
         <div class="panel alive-panel">
           <div class="panel-head">
-            <svg class="icon icon-s"><use href="#i-users"/></svg>
+            <span class="icon icon-s" data-icon="users"></span>
             <span class="panel-title">ખેલાડીઓ <span class="en">Players in play</span></span>
           </div>
           <div class="alive-chips" id="alive-chips"></div>
@@ -232,18 +207,18 @@
 
         <div class="panel timer-panel">
           <div class="panel-head">
-            <svg class="icon icon-s"><use href="#i-timer"/></svg>
+            <span class="icon icon-s" data-icon="timer"></span>
             <span class="panel-title">ટાઈમર <span class="en">Timer</span></span>
           </div>
           <div class="timer-display" id="timer-display">03:00</div>
           <div class="timer-bar"><div class="timer-bar-fill" id="timer-bar-fill"></div></div>
           <div class="timer-controls">
             <button class="btn btn-outline btn-sm" id="timer-toggle">
-              <svg class="icon icon-s"><use href="#i-play"/></svg>
+              <span class="icon icon-s" data-icon="play"></span>
               <span>શરૂ</span>
             </button>
             <button class="btn btn-outline btn-sm" id="timer-reset" aria-label="Reset timer">
-              <svg class="icon icon-s"><use href="#i-rotate"/></svg>
+              <span class="icon icon-s" data-icon="rotate"></span>
             </button>
             <button class="chip" data-timer-set="120">2:00</button>
             <button class="chip" data-timer-set="180">3:00</button>
@@ -253,15 +228,15 @@
 
         <div class="round-actions">
           <button class="btn btn-primary btn-lg" id="btn-to-discuss" hidden>
-            <svg class="icon"><use href="#i-arrow-right"/></svg>
+            <span class="icon" data-icon="arrow-right"></span>
             <span class="btn-label">ચર્ચા શરૂ કરો<span class="en">Start discussion</span></span>
           </button>
           <button class="btn btn-primary btn-lg" id="btn-to-vote" hidden>
-            <svg class="icon"><use href="#i-mask"/></svg>
+            <span class="icon" data-icon="mask"></span>
             <span class="btn-label">મત આપો<span class="en">Vote someone out</span></span>
           </button>
           <button class="btn btn-ghost" id="btn-skip-round" hidden>
-            <svg class="icon"><use href="#i-arrow-right"/></svg>
+            <span class="icon" data-icon="arrow-right"></span>
             <span class="btn-label">રાઉન્ડ છોડો — મત નહીં<span class="en">Skip round — no vote</span></span>
           </button>
         </div>
@@ -272,7 +247,7 @@
     <section class="screen" id="screen-vote">
       <header class="bar">
         <button class="icon-btn" id="btn-vote-back" aria-label="Back">
-          <svg class="icon"><use href="#i-back"/></svg>
+          <span class="icon" data-icon="back"></span>
         </button>
         <div class="bar-title">
           <h2>કોને બહાર કાઢવો?</h2>
@@ -289,7 +264,7 @@
 
       <div class="sticky-footer">
         <button class="btn btn-lose btn-lg" id="btn-confirm-vote" disabled>
-          <svg class="icon"><use href="#i-mask"/></svg>
+          <span class="icon" data-icon="mask"></span>
           <span class="btn-label">બહાર કાઢો<span class="en">Vote out</span></span>
         </button>
       </div>
@@ -299,7 +274,7 @@
     <section class="screen" id="screen-outcome">
       <header class="bar">
         <button class="icon-btn" data-quit aria-label="Quit game">
-          <svg class="icon"><use href="#i-x"/></svg>
+          <span class="icon" data-icon="x"></span>
         </button>
         <div class="bar-title">
           <h2 id="outcome-title">પરિણામ</h2>
@@ -317,14 +292,14 @@
     <section class="screen" id="screen-history">
       <header class="bar">
         <button class="icon-btn" data-nav="home" aria-label="Back">
-          <svg class="icon"><use href="#i-back"/></svg>
+          <span class="icon" data-icon="back"></span>
         </button>
         <div class="bar-title">
           <h2>ઇતિહાસ</h2>
           <span class="en">Game history</span>
         </div>
         <button class="icon-btn danger" id="btn-clear-history" aria-label="Clear history">
-          <svg class="icon"><use href="#i-trash"/></svg>
+          <span class="icon" data-icon="trash"></span>
         </button>
       </header>
       <div id="history-list" class="history-list"></div>
@@ -334,7 +309,7 @@
     <section class="screen" id="screen-how">
       <header class="bar">
         <button class="icon-btn" data-nav="home" aria-label="Back">
-          <svg class="icon"><use href="#i-back"/></svg>
+          <span class="icon" data-icon="back"></span>
         </button>
         <div class="bar-title">
           <h2>કેવી રીતે રમવું</h2>
@@ -377,6 +352,7 @@
 
   <div class="toast" id="toast" hidden></div>
 
+  <script src="js/icons.js"></script>
   <script src="js/vocab.js"></script>
   <script src="js/db.js"></script>
   <script src="js/app.js"></script>
