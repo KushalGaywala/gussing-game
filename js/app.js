@@ -263,8 +263,7 @@
   $('#btn-next-player').addEventListener('click', () => {
     if (!game) return;
     if (game.index >= game.names.length - 1) {
-      showScreen('play');
-      prepPlayScreen();
+      startRounds();
     } else {
       startRevealFor(game.index + 1);
     }
@@ -360,52 +359,261 @@
   }
   stack.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // ================= PLAY / DISCUSSION =================
-  function prepPlayScreen() {
-    stopTimer();
-    setTimer(timerDuration);
-    $('#reveal-answer').hidden = true;
-    $('#reveal-answer').innerHTML = '';
-    $('#btn-show-word').hidden = false;
+  // ================= ROUNDS / VOTING =================
+  // After the reveal, the game runs in rounds. Round 1 opens straight into a
+  // discussion; every later round opens with a suggesting phase, then a
+  // discussion. Each discussion ends in a choice: Vote someone out, or Skip
+  // the round. A vote ejects a player, reveals their role, and checks the win
+  // conditions; a skip just moves on. Civilians win when no imposters remain;
+  // imposters win once they equal or outnumber the surviving civilians.
+
+  let voteSelection = null; // index chosen on the vote screen
+
+  function startRounds() {
+    game.alive = new Array(game.names.length).fill(true);
+    game.round = 1;
+    game.phase = 'discuss'; // 'suggest' | 'discuss'
+    game.eliminations = [];
+    game.saved = false;
+    showScreen('round');
+    renderRound();
   }
 
-  $('#btn-show-word').addEventListener('click', () => {
+  function aliveCounts() {
+    let imp = 0, civ = 0;
+    for (let i = 0; i < game.names.length; i++) {
+      if (!game.alive[i]) continue;
+      if (game.roles[i]) imp++; else civ++;
+    }
+    return { imp, civ, total: imp + civ };
+  }
+
+  // Returns 'civilians' | 'imposters' | null (game continues).
+  // Evaluated only after an ejection, so a game always gets played.
+  function checkWinner() {
+    const { imp, civ } = aliveCounts();
+    if (imp === 0) return 'civilians';
+    if (imp >= civ) return 'imposters';
+    return null;
+  }
+
+  function renderAlive(wrap) {
+    wrap.innerHTML = '';
+    game.names.forEach((n, i) => {
+      const chip = document.createElement('span');
+      if (game.alive[i]) {
+        chip.className = 'p-chip';
+        chip.textContent = n;
+      } else {
+        // role was already revealed when this player was ejected
+        chip.className = 'p-chip out' + (game.roles[i] ? ' was-imp' : '');
+        chip.innerHTML = `<span class="p-name">${n}</span>` +
+          (game.roles[i] ? '<svg class="icon icon-s"><use href="#i-mask"/></svg>' : '');
+      }
+      wrap.appendChild(chip);
+    });
+    const left = game.alive.filter(Boolean).length;
+    const sum = document.createElement('p');
+    sum.className = 'alive-sum';
+    sum.innerHTML = `${left} ખેલાડી બાકી <span class="en">${left} still in play</span>`;
+    wrap.appendChild(sum);
+  }
+
+  function renderRound() {
+    const suggest = game.phase === 'suggest';
+    $('#round-chip').textContent = `રાઉન્ડ ${game.round}`;
+    $('#round-title').textContent = suggest ? 'સૂચન રાઉન્ડ' : 'ચર્ચા રાઉન્ડ';
+    $('#round-title-en').textContent = suggest ? 'Suggesting round' : 'Discussion round';
+    $('#round-desc').innerHTML = suggest
+      ? 'દરેક ખેલાડી કારણ સાથે સૂચવે કે કોણ શંકાસ્પદ છે.<br/><span class="en">Each player suggests who seems suspicious — with a reason.</span>'
+      : 'દરેક ખેલાડી શબ્દ વિશે એક સંકેત આપે — શબ્દ બોલ્યા વગર. પછી મત આપો કે રાઉન્ડ છોડો.<br/><span class="en">Each gives one clue about the word — then vote or skip.</span>';
+
+    renderAlive($('#alive-chips'));
+
+    stopTimer();
+    setTimer(timerDuration);
+
+    $('#btn-to-discuss').hidden = !suggest;
+    $('#btn-to-vote').hidden = suggest;
+    $('#btn-skip-round').hidden = suggest;
+  }
+
+  function nextRound() {
+    game.round += 1;
+    game.phase = 'suggest';
+    showScreen('round');
+    renderRound();
+  }
+
+  // suggesting phase -> discussion phase
+  $('#btn-to-discuss').addEventListener('click', () => {
     if (!game) return;
-    const c = CATEGORIES[game.word.cat];
-    const impNames = game.names.filter((_, i) => game.roles[i]);
-    $('#reveal-answer').innerHTML = `
-      <p class="word-gu">${game.word.gu} <span class="word-en">(${game.word.en})</span></p>
-      <span class="word-cat">${c ? c.gu + ' · ' + c.en : ''}</span>
-      <div class="impo-list">
-        <span class="impo-label">ઈમ્પોસ્ટર:</span>
-        ${impNames.map((n) => `<span class="chip chip-danger">${n}</span>`).join('')}
-      </div>`;
-    $('#reveal-answer').hidden = false;
-    $('#btn-show-word').hidden = true;
+    game.phase = 'discuss';
+    renderRound();
   });
 
-  document.addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-winner]');
-    if (!b || !game) return;
-    const winner = b.getAttribute('data-winner');
-    if (winner !== 'skip') {
-      await DB.addHistory({
-        date: new Date().toISOString(),
-        wordGu: game.word.gu,
-        wordEn: game.word.en,
-        cat: game.word.cat,
-        players: game.names.length,
-        imposters: game.roles.filter(Boolean).length,
-        imposterNames: game.names.filter((_, i) => game.roles[i]),
-        playerNames: game.names.slice(),
-        winner,
-      });
-      toast(winner === 'civilians' ? 'ખેલાડીઓ જીત્યા! (Civilians win)' : 'ઈમ્પોસ્ટર જીત્યા! (Imposters win)');
+  // discussion -> vote
+  $('#btn-to-vote').addEventListener('click', () => {
+    if (!game) return;
+    stopTimer();
+    showScreen('vote');
+    renderVote();
+  });
+
+  // discussion -> skip round (no ejection, no win check)
+  $('#btn-skip-round').addEventListener('click', () => {
+    if (!game) return;
+    stopTimer();
+    toast('રાઉન્ડ છોડ્યો (Round skipped)');
+    nextRound();
+  });
+
+  // ---- vote screen ----
+  function renderVote() {
+    voteSelection = null;
+    $('#vote-chip').textContent = `રાઉન્ડ ${game.round}`;
+    const list = $('#vote-list');
+    list.innerHTML = '';
+    game.names.forEach((n, i) => {
+      if (!game.alive[i]) return;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'vote-option';
+      b.dataset.idx = i;
+      b.innerHTML = `<span class="vote-name">${n}</span><span class="vote-radio"></span>`;
+      list.appendChild(b);
+    });
+    $('#btn-confirm-vote').disabled = true;
+  }
+
+  $('#vote-list').addEventListener('click', (e) => {
+    const opt = e.target.closest('.vote-option');
+    if (!opt) return;
+    voteSelection = parseInt(opt.dataset.idx, 10);
+    $$('.vote-option', $('#vote-list')).forEach((o) => o.classList.toggle('selected', o === opt));
+    $('#btn-confirm-vote').disabled = false;
+  });
+
+  $('#btn-vote-back').addEventListener('click', () => {
+    if (!game) return;
+    game.phase = 'discuss';
+    showScreen('round');
+    renderRound();
+  });
+
+  $('#btn-confirm-vote').addEventListener('click', () => {
+    if (!game || voteSelection == null || !game.alive[voteSelection]) return;
+    eliminate(voteSelection);
+  });
+
+  function eliminate(idx) {
+    game.alive[idx] = false;
+    const wasImp = game.roles[idx];
+    game.eliminations.push({ name: game.names[idx], imposter: wasImp, round: game.round });
+    if (navigator.vibrate) navigator.vibrate(wasImp ? [30, 60, 30] : 30);
+    const winner = checkWinner();
+    showScreen('outcome');
+    renderOutcome(idx, wasImp, winner);
+  }
+
+  // ---- outcome screen (ejection reveal / game over) ----
+  function renderOutcome(idx, wasImp, winner) {
+    const body = $('#outcome-body');
+    const actions = $('#outcome-actions');
+    actions.innerHTML = '';
+
+    if (winner) {
+      const civWin = winner === 'civilians';
+      $('#outcome-title').textContent = civWin ? 'ખેલાડીઓ જીત્યા!' : 'ઈમ્પોસ્ટર જીત્યા!';
+      $('#outcome-title-en').textContent = civWin ? 'Civilians win' : 'Imposters win';
+      body.innerHTML = gameOverBody(winner);
+      if (!game.saved) {
+        game.saved = true;
+        saveResult(winner);
+        toast(civWin ? 'ખેલાડીઓ જીત્યા! (Civilians win)' : 'ઈમ્પોસ્ટર જીત્યા! (Imposters win)');
+      }
+      const again = mkBtn('btn btn-primary btn-lg', 'i-rotate', 'નવી રમત', 'New game');
+      again.addEventListener('click', () => { resetGame(); showScreen('setup'); });
+      const home = mkBtn('btn btn-ghost', 'i-back', 'મુખ્ય પાનું', 'Home');
+      home.addEventListener('click', () => { resetGame(); showScreen('home'); });
+      actions.appendChild(again);
+      actions.appendChild(home);
+    } else {
+      $('#outcome-title').textContent = 'બહાર કાઢ્યો';
+      $('#outcome-title-en').textContent = 'Voted out';
+      body.innerHTML = ejectBody(idx, wasImp);
+      const cont = mkBtn('btn btn-primary btn-lg', 'i-arrow-right', 'આગળનો રાઉન્ડ', 'Next round');
+      cont.addEventListener('click', () => nextRound());
+      actions.appendChild(cont);
     }
+  }
+
+  function ejectBody(idx, wasImp) {
+    const left = game.alive.filter(Boolean).length;
+    return `
+      <div class="outcome-card ${wasImp ? 'good' : 'bad'}">
+        <div class="outcome-mark"><svg class="icon icon-l"><use href="#${wasImp ? 'i-mask' : 'i-users'}"/></svg></div>
+        <p class="outcome-name">${game.names[idx]}</p>
+        <p class="outcome-role">${wasImp
+          ? 'ઈમ્પોસ્ટર હતો! <span class="en">was an imposter</span>'
+          : 'નિર્દોષ ખેલાડી હતો <span class="en">was innocent</span>'}</p>
+      </div>
+      <p class="outcome-note">${left} ખેલાડી બાકી · રમત ચાલુ છે<br/><span class="en">${left} players left — the game continues</span></p>`;
+  }
+
+  function gameOverBody(winner) {
+    const c = CATEGORIES[game.word.cat];
+    const civWin = winner === 'civilians';
+    const roster = game.names.map((n, i) => `
+      <div class="roster-row">
+        <span class="roster-name">${n}</span>
+        <span class="roster-tags">
+          ${game.roles[i] ? '<span class="chip chip-danger">ઈમ્પોસ્ટર</span>' : '<span class="chip chip-civ">ખેલાડી</span>'}
+          <span class="roster-state ${game.alive[i] ? 'in' : 'out'}">${game.alive[i] ? 'બાકી · in' : 'બહાર · out'}</span>
+        </span>
+      </div>`).join('');
+    return `
+      <div class="outcome-card ${civWin ? 'good' : 'bad'}">
+        <div class="outcome-mark"><svg class="icon icon-l"><use href="#${civWin ? 'i-users' : 'i-mask'}"/></svg></div>
+        <p class="outcome-role big">${civWin
+          ? 'બધા ઈમ્પોસ્ટર પકડાયા! <span class="en">All imposters caught</span>'
+          : 'ઈમ્પોસ્ટર બહુમતીમાં આવી ગયા <span class="en">Imposters reached parity</span>'}</p>
+      </div>
+      <div class="word-reveal">
+        <span class="word-cat">${c ? c.gu + ' · ' + c.en : ''}</span>
+        <p class="word-gu">${game.word.gu} <span class="word-en">(${game.word.en})</span></p>
+      </div>
+      <div class="roster">${roster}</div>`;
+  }
+
+  function mkBtn(cls, icon, gu, en) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.innerHTML = `<svg class="icon"><use href="#${icon}"/></svg><span class="btn-label">${gu}<span class="en">${en}</span></span>`;
+    return b;
+  }
+
+  function saveResult(winner) {
+    return DB.addHistory({
+      date: new Date().toISOString(),
+      wordGu: game.word.gu,
+      wordEn: game.word.en,
+      cat: game.word.cat,
+      players: game.names.length,
+      imposters: game.roles.filter(Boolean).length,
+      imposterNames: game.names.filter((_, i) => game.roles[i]),
+      playerNames: game.names.slice(),
+      winner,
+      rounds: game.round,
+      eliminations: game.eliminations.slice(),
+    });
+  }
+
+  function resetGame() {
     stopTimer();
     game = null;
-    showScreen('setup');
-  });
+  }
 
   // ================= TIMER =================
   let timerDuration = 180; // seconds
@@ -492,6 +700,7 @@
         <div class="h-meta">
           <span class="meta-pill">${it.players} ખેલાડી</span>
           <span class="meta-pill">${it.imposters} ઈમ્પોસ્ટર</span>
+          ${it.rounds ? `<span class="meta-pill">${it.rounds} રાઉન્ડ</span>` : ''}
           ${badge}
         </div>
         <div class="h-imp">ઈમ્પોસ્ટર: ${(it.imposterNames || []).join(', ') || '—'}</div>`;

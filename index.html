@@ -206,21 +206,29 @@
       </div>
     </section>
 
-    <!-- ============ PLAY / DISCUSSION ============ -->
-    <section class="screen" id="screen-play">
+    <!-- ============ ROUND (discussion / suggesting) ============ -->
+    <section class="screen" id="screen-round">
       <header class="bar">
         <button class="icon-btn" data-quit aria-label="Quit game">
           <svg class="icon"><use href="#i-x"/></svg>
         </button>
         <div class="bar-title">
-          <h2>ચર્ચા અને મતદાન</h2>
-          <span class="en">Discuss &amp; vote</span>
+          <h2 id="round-title">ચર્ચા રાઉન્ડ</h2>
+          <span class="en" id="round-title-en">Discussion round</span>
         </div>
+        <span class="turn-chip" id="round-chip">રાઉન્ડ 1</span>
       </header>
 
       <div class="play-wrap">
-        <p class="play-desc">દરેક ખેલાડી શબ્દ વિશે એક સંકેત આપે — શબ્દ બોલ્યા વગર. પછી ઈમ્પોસ્ટરને શોધો!<br/>
-          <span class="en">Everyone gives one clue about the word. Find the imposter!</span></p>
+        <p class="play-desc" id="round-desc"></p>
+
+        <div class="panel alive-panel">
+          <div class="panel-head">
+            <svg class="icon icon-s"><use href="#i-users"/></svg>
+            <span class="panel-title">ખેલાડીઓ <span class="en">Players in play</span></span>
+          </div>
+          <div class="alive-chips" id="alive-chips"></div>
+        </div>
 
         <div class="panel timer-panel">
           <div class="panel-head">
@@ -243,26 +251,65 @@
           </div>
         </div>
 
-        <div class="panel answer-panel">
-          <button class="btn btn-ghost" id="btn-show-word">
-            <svg class="icon"><use href="#i-eye"/></svg>
-            <span class="btn-label">શબ્દ અને ઈમ્પોસ્ટર બતાવો<span class="en">Reveal word &amp; imposters</span></span>
+        <div class="round-actions">
+          <button class="btn btn-primary btn-lg" id="btn-to-discuss" hidden>
+            <svg class="icon"><use href="#i-arrow-right"/></svg>
+            <span class="btn-label">ચર્ચા શરૂ કરો<span class="en">Start discussion</span></span>
           </button>
-          <div class="reveal-answer" id="reveal-answer" hidden></div>
-        </div>
-
-        <div class="result-block">
-          <p class="section-label">કોણ જીત્યું? <span class="en">Who won?</span></p>
-          <button class="btn btn-win" data-winner="civilians">
-            <svg class="icon"><use href="#i-users"/></svg>
-            <span class="btn-label">ખેલાડીઓ જીત્યા<span class="en">Civilians win</span></span>
-          </button>
-          <button class="btn btn-lose" data-winner="imposters">
+          <button class="btn btn-primary btn-lg" id="btn-to-vote" hidden>
             <svg class="icon"><use href="#i-mask"/></svg>
-            <span class="btn-label">ઈમ્પોસ્ટર જીત્યા<span class="en">Imposters win</span></span>
+            <span class="btn-label">મત આપો<span class="en">Vote someone out</span></span>
           </button>
-          <button class="btn btn-ghost btn-sm" data-winner="skip">પરિણામ વગર છોડો <span class="en">Skip</span></button>
+          <button class="btn btn-ghost" id="btn-skip-round" hidden>
+            <svg class="icon"><use href="#i-arrow-right"/></svg>
+            <span class="btn-label">રાઉન્ડ છોડો — મત નહીં<span class="en">Skip round — no vote</span></span>
+          </button>
         </div>
+      </div>
+    </section>
+
+    <!-- ============ VOTE (pick who to eliminate) ============ -->
+    <section class="screen" id="screen-vote">
+      <header class="bar">
+        <button class="icon-btn" id="btn-vote-back" aria-label="Back">
+          <svg class="icon"><use href="#i-back"/></svg>
+        </button>
+        <div class="bar-title">
+          <h2>કોને બહાર કાઢવો?</h2>
+          <span class="en">Vote someone out</span>
+        </div>
+        <span class="turn-chip" id="vote-chip">રાઉન્ડ 1</span>
+      </header>
+
+      <div class="play-wrap">
+        <p class="play-desc">જૂથે જેને સૌથી વધુ મત આપ્યા તે ખેલાડી પસંદ કરો.<br/>
+          <span class="en">Select the player the group voted out.</span></p>
+        <div class="vote-list" id="vote-list"></div>
+      </div>
+
+      <div class="sticky-footer">
+        <button class="btn btn-lose btn-lg" id="btn-confirm-vote" disabled>
+          <svg class="icon"><use href="#i-mask"/></svg>
+          <span class="btn-label">બહાર કાઢો<span class="en">Vote out</span></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ OUTCOME (elimination reveal / game over) ============ -->
+    <section class="screen" id="screen-outcome">
+      <header class="bar">
+        <button class="icon-btn" data-quit aria-label="Quit game">
+          <svg class="icon"><use href="#i-x"/></svg>
+        </button>
+        <div class="bar-title">
+          <h2 id="outcome-title">પરિણામ</h2>
+          <span class="en" id="outcome-title-en">Result</span>
+        </div>
+      </header>
+
+      <div class="play-wrap">
+        <div id="outcome-body"></div>
+        <div class="result-block" id="outcome-actions"></div>
       </div>
     </section>
 
@@ -313,7 +360,15 @@
         </div>
         <div class="step">
           <span class="step-num">5</span>
-          <p><b>મત આપો:</b> ઈમ્પોસ્ટર કોણ છે તે શોધો અને પરિણામ સાચવો.<br/><span class="en">Vote out the imposter &amp; save the result.</span></p>
+          <p><b>મત આપો કે છોડો:</b> દરેક રાઉન્ડમાં જૂથ કાં તો એક ખેલાડીને બહાર કાઢવા <b>મત આપે</b>, અથવા <b>રાઉન્ડ છોડે</b>. બહાર નીકળેલો ખેલાડી ઈમ્પોસ્ટર હતો કે નિર્દોષ તે ખૂલે.<br/><span class="en">Each round the group either <b>votes</b> a player out or <b>skips</b>. The ejected player's role is revealed.</span></p>
+        </div>
+        <div class="step">
+          <span class="step-num">6</span>
+          <p><b>આગળના રાઉન્ડ:</b> જો રમત ચાલુ રહે તો સૂચન રાઉન્ડ પછી ફરી ચર્ચા રાઉન્ડ આવે — મતદાન સુધી.<br/><span class="en">If the game continues, a suggesting round is followed by another discussion round — then vote again.</span></p>
+        </div>
+        <div class="step">
+          <span class="step-num">7</span>
+          <p><b>જીત:</b> બધા ઈમ્પોસ્ટર બહાર નીકળે તો <b>ખેલાડીઓ જીતે</b>. ઈમ્પોસ્ટર બાકીના ખેલાડીઓ જેટલા કે વધુ થઈ જાય તો <b>ઈમ્પોસ્ટર જીતે</b>.<br/><span class="en">Civilians win when all imposters are out. Imposters win once they equal or outnumber the civilians.</span></p>
         </div>
       </div>
     </section>
