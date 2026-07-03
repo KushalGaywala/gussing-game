@@ -515,8 +515,18 @@
     game.phase = 'discuss'; // 'suggest' | 'discuss'
     game.eliminations = [];
     game.saved = false;
+    game.starter = null;
+    pickDiscussionStarter();
     showScreen('round');
     renderRound();
+  }
+
+  // Randomly nominate one living player to open the discussion, so nobody has to
+  // decide who speaks first. Re-picked each time a discussion phase begins.
+  function pickDiscussionStarter() {
+    const alive = [];
+    for (let i = 0; i < game.names.length; i++) if (game.alive[i]) alive.push(i);
+    game.starter = alive.length ? alive[randInt(alive.length)] : null;
   }
 
   function aliveCounts() {
@@ -567,6 +577,16 @@
     secEl($('#round-title-en'), titleKey);
     $('#round-desc').innerHTML = biBr(suggest ? 'suggest_desc' : 'discuss_desc');
 
+    const starterEl = $('#round-starter');
+    if (!suggest && game.starter != null && game.alive[game.starter]) {
+      const fill = (str) => str.replace('{name}', game.names[game.starter]);
+      starterEl.innerHTML = fill(I18n.t('discuss_starter')) +
+        I18n.secSpan(fill(I18n.s('discuss_starter')));
+      starterEl.hidden = false;
+    } else {
+      starterEl.hidden = true;
+    }
+
     renderAlive($('#alive-chips'));
 
     stopTimer();
@@ -588,6 +608,7 @@
   $('#btn-to-discuss').addEventListener('click', () => {
     if (!game) return;
     game.phase = 'discuss';
+    pickDiscussionStarter();
     renderRound();
   });
 
