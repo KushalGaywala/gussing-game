@@ -573,6 +573,18 @@ html.no-secondary [data-i18n-sec] { display: none; }
 /* ---- Play / discussion ---- */
 .play-wrap { display: flex; flex-direction: column; gap: 12px; margin: auto 0; text-align: center; }
 .play-desc { color: var(--text-2); margin: 0 0 4px; font-size: 0.95rem; line-height: 1.5; }
+.round-starter {
+  margin: 0 auto 4px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent-2);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.round-starter .en { color: var(--text-2); font-weight: 600; }
 .timer-panel .panel-head { margin-bottom: 6px; }
 .timer-display {
   font-size: 3.2rem;

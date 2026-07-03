@@ -82,6 +82,7 @@
     round_discuss_title: { gu: 'ચર્ચા રાઉન્ડ', en: 'Discussion round' },
     suggest_desc: { gu: 'દરેક ખેલાડી કારણ સાથે સૂચવે કે કોણ શંકાસ્પદ છે.', en: 'Each player suggests who seems suspicious — with a reason.' },
     discuss_desc: { gu: 'દરેક ખેલાડી શબ્દ વિશે એક સંકેત આપે — શબ્દ બોલ્યા વગર. પછી મત આપો કે રાઉન્ડ છોડો.', en: 'Each gives one clue about the word — then vote or skip.' },
+    discuss_starter: { gu: '{name} ચર્ચા શરૂ કરે', en: '{name} starts the discussion' },
     round_word: { gu: 'રાઉન્ડ', en: 'Round' },
     players_left: { gu: 'ખેલાડી બાકી', en: 'still in play' },
     vote_someone_out: { gu: 'મત આપો', en: 'Vote someone out' },
