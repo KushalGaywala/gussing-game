@@ -58,6 +58,11 @@
     no_words: { gu: 'આ શ્રેણીમાં શબ્દ નથી', en: 'No words in this category' },
     player: { gu: 'ખેલાડી', en: 'Player' }, // default name + placeholder base
     imp_hint: { gu: '૧ થી {max} સુધી ({p} ખેલાડીઓ માટે)', en: '1 to {max} (for {p} players)' },
+    game_mode: { gu: 'રમતની રીત', en: 'Game mode' },
+    mode_classic: { gu: 'ક્લાસિક', en: 'Classic' },
+    mode_linear: { gu: 'ક્રમિક', en: 'Linear' },
+    mode_classic_hint: { gu: 'ખેલાડીઓનો ક્રમ અવ્યવસ્થિત — બેઠક દર વખતે બદલાય.', en: 'Players are shuffled — seating changes each game.' },
+    mode_linear_hint: { gu: 'ખેલાડીઓનો ક્રમ યથાવત — બધું ગોઠવણ પ્રમાણે જ ચાલે.', en: 'Fixed order — reveal, turns & removal follow the setup order.' },
 
     // ---- reveal ----
     reveal_title: { gu: 'શબ્દ જુઓ', en: 'Secret reveal' },
@@ -85,23 +90,18 @@
     discuss_starter: { gu: '{name} ચર્ચા શરૂ કરે', en: '{name} starts the discussion' },
     round_word: { gu: 'રાઉન્ડ', en: 'Round' },
     players_left: { gu: 'ખેલાડી બાકી', en: 'still in play' },
-    vote_someone_out: { gu: 'મત આપો', en: 'Vote someone out' },
-    skip_round: { gu: 'રાઉન્ડ છોડો — મત નહીં', en: 'Skip round — no vote' },
+    vote_someone_out: { gu: 'કોને કાઢવો પસંદ કરો', en: 'Choose who to remove' },
+    skip_round: { gu: 'રાઉન્ડ છોડો — કોઈને નહીં', en: 'Skip round — remove no one' },
     round_skipped: { gu: 'રાઉન્ડ છોડ્યો', en: 'Round skipped' },
 
-    // ---- vote (pass-the-phone secret ballot) ----
-    vote_title: { gu: 'કોને બહાર કાઢવો?', en: 'Vote someone out' },
-    vote_ballot_desc: { gu: 'ગુપ્ત રીતે એક ખેલાડીને મત આપો, અથવા છોડો — પછી ફોન આગળ આપો.', en: 'Secretly vote for one player, or skip — then pass the phone on.' },
-    vote_skip_option: { gu: 'છોડો — કોઈને નહીં', en: 'Skip — no one' },
-    vote_lock_in: { gu: 'મત નોંધો — આગળ આપો', en: 'Lock in & pass' },
-    vote_tally: { gu: 'મત ગણો', en: 'Count the votes' },
-    vote_distribution: { gu: 'મતની વહેંચણી', en: 'Vote distribution' },
-    no_ejection_title: { gu: 'કોઈ બહાર નહીં', en: 'No one voted out' },
-    no_ejection_note: { gu: 'મત વહેંચાઈ ગયા', en: 'The votes were split' },
+    // ---- select (group picks one player to remove) ----
+    select_title: { gu: 'કોને બહાર કાઢવો?', en: 'Who to remove?' },
+    select_desc: { gu: 'બધા સાથે મળીને એક ખેલાડીને પસંદ કરો.', en: 'Together, pick one player to remove.' },
+    remove_confirm: { gu: 'બહાર કાઢો', en: 'Remove player' },
 
     // ---- outcome ----
     result: { gu: 'પરિણામ', en: 'Result' },
-    voted_out: { gu: 'બહાર કાઢ્યો', en: 'Voted out' },
+    voted_out: { gu: 'બહાર કાઢ્યો', en: 'Removed' },
     civilians_win: { gu: 'ખેલાડીઓ જીત્યા', en: 'Civilians win' },
     imposters_win: { gu: 'ઈમ્પોસ્ટર જીત્યા', en: 'Imposters win' },
     was_imposter: { gu: 'ઈમ્પોસ્ટર હતો!', en: 'was an imposter' },
@@ -153,8 +153,8 @@
       en: '<b>Discuss:</b> Each player gives one clue without saying the word.',
     },
     how_5: {
-      gu: '<b>મત આપો કે છોડો:</b> ફોન એક-એક કરીને ફેરવો — દરેક ખેલાડી ગુપ્ત રીતે કોઈને બહાર કાઢવા મત આપે કે <b>છોડે</b>. સૌથી વધુ મત મેળવનાર બહાર; બરાબરી થાય તો કોઈ નહીં. બહાર નીકળેલાનું પાત્ર ખૂલે.',
-      en: '<b>Vote or skip:</b> Pass the phone around — each player secretly votes someone out or <b>skips</b>. The most-voted player leaves (a tie ejects no one); their role is revealed.',
+      gu: '<b>પસંદ કરો કે છોડો:</b> બધા સાથે મળીને એક ખેલાડીને બહાર કાઢવા પસંદ કરો, અથવા રાઉન્ડ <b>છોડો</b>. બહાર નીકળેલાનું પાત્ર ખૂલે.',
+      en: '<b>Remove or skip:</b> Together, pick one player to remove — or <b>skip</b> the round. The removed player’s role is revealed.',
     },
     how_6: {
       gu: '<b>આગળના રાઉન્ડ:</b> જો રમત ચાલુ રહે તો સૂચન રાઉન્ડ પછી ફરી ચર્ચા રાઉન્ડ આવે — મતદાન સુધી.',

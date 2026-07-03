@@ -7,9 +7,9 @@
   <meta name="description" content="ગુજરાતી ઈમ્પોસ્ટર પાર્ટી ગેમ — Gujarati Imposter party game" />
   <title>ઈમ્પોસ્ટર — Imposter</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon.svg?v=13" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=13" />
-  <link rel="stylesheet" href="css/style.css?v=13" />
+  <link rel="icon" href="icons/icon.svg?v=14" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=14" />
+  <link rel="stylesheet" href="css/style.css?v=14" />
   <!-- apply saved secondary-language visibility before first paint (no flash) -->
   <script>try{var s=localStorage.getItem('imposter-lang-secondary');if(s===null&&localStorage.getItem('imposter-lang-mode')==='normal')s='';if(s==='')document.documentElement.classList.add('no-secondary');}catch(e){}</script>
 </head>
@@ -93,6 +93,24 @@
           <button class="step-btn" data-delta="1" aria-label="More imposters"><span class="icon" data-icon="plus"></span></button>
         </div>
         <p class="hint" id="imposter-hint"></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="icon icon-s" data-icon="list"></span>
+          <span class="panel-title" data-i18n="game_mode">રમતની રીત</span>
+        </div>
+        <div class="mode-toggle" id="mode-toggle" role="group">
+          <button type="button" class="mode-opt" data-mode="classic">
+            <span class="icon icon-s" data-icon="shuffle"></span>
+            <span class="mode-opt-label" data-i18n="mode_classic">ક્લાસિક</span>
+          </button>
+          <button type="button" class="mode-opt" data-mode="linear">
+            <span class="icon icon-s" data-icon="arrow-right"></span>
+            <span class="mode-opt-label" data-i18n="mode_linear">ક્રમિક</span>
+          </button>
+        </div>
+        <p class="hint" id="mode-hint"></p>
       </div>
 
       <div class="panel">
@@ -244,43 +262,37 @@
           </button>
           <button class="btn btn-primary btn-lg" id="btn-to-vote" hidden>
             <span class="icon" data-icon="mask"></span>
-            <span class="btn-label" data-i18n="vote_someone_out">મત આપો</span>
+            <span class="btn-label" data-i18n="vote_someone_out">કોને કાઢવો પસંદ કરો</span>
           </button>
           <button class="btn btn-ghost" id="btn-skip-round" hidden>
             <span class="icon" data-icon="arrow-right"></span>
-            <span class="btn-label" data-i18n="skip_round">રાઉન્ડ છોડો — મત નહીં</span>
+            <span class="btn-label" data-i18n="skip_round">રાઉન્ડ છોડો — કોઈને નહીં</span>
           </button>
         </div>
       </div>
     </section>
 
-    <!-- ============ VOTE (pass-the-phone secret ballot, one voter at a time) ============ -->
+    <!-- ============ SELECT (the group picks one player to remove) ============ -->
     <section class="screen" id="screen-vote">
       <header class="bar">
         <button class="icon-btn" id="btn-vote-back" aria-label="Back">
           <span class="icon" data-icon="back"></span>
         </button>
         <div class="bar-title">
-          <h2 data-i18n-pri="vote_title">કોને બહાર કાઢવો?</h2>
-          <span class="en" data-i18n-sec="vote_title">Vote someone out</span>
+          <h2 data-i18n-pri="select_title">કોને બહાર કાઢવો?</h2>
+          <span class="en" data-i18n-sec="select_title">Who to remove?</span>
         </div>
-        <span class="turn-chip" id="vote-turn-count">1 / 4</span>
       </header>
 
       <div class="play-wrap">
-        <div class="pass-banner">
-          <p class="pass-instruction" id="vote-pass-instruction">ફોન આ ખેલાડીને આપો</p>
-          <h2 class="pass-player" id="vote-voter">ખેલાડી 1</h2>
-        </div>
-        <p class="play-desc" data-i18n="vote_ballot_desc" data-i18n-sep="br">ગુપ્ત રીતે એક ખેલાડીને મત આપો, અથવા છોડો — પછી ફોન આગળ આપો.</p>
+        <p class="play-desc" data-i18n="select_desc" data-i18n-sep="br">બધા સાથે મળીને એક ખેલાડીને પસંદ કરો.</p>
         <div class="vote-list" id="vote-list"></div>
-        <div class="dots" id="vote-dots"></div>
       </div>
 
       <div class="sticky-footer">
         <button class="btn btn-primary btn-lg" id="btn-confirm-vote" disabled>
           <span class="icon" data-icon="check"></span>
-          <span class="btn-label" id="btn-confirm-vote-label" data-i18n="vote_lock_in">મત નોંધો</span>
+          <span class="btn-label" id="btn-confirm-vote-label" data-i18n="remove_confirm">બહાર કાઢો</span>
         </button>
       </div>
     </section>
@@ -350,7 +362,7 @@
         </div>
         <div class="step">
           <span class="step-num">5</span>
-          <p data-i18n="how_5" data-i18n-sep="br"><b>મત આપો કે છોડો:</b> ફોન એક-એક કરીને ફેરવો — દરેક ખેલાડી ગુપ્ત રીતે કોઈને બહાર કાઢવા મત આપે કે <b>છોડે</b>. સૌથી વધુ મત મેળવનાર બહાર; બરાબરી થાય તો કોઈ નહીં. બહાર નીકળેલાનું પાત્ર ખૂલે.<br/><span class="en">Pass the phone around — each player secretly votes someone out or <b>skips</b>. The most-voted player leaves (a tie ejects no one); their role is revealed.</span></p>
+          <p data-i18n="how_5" data-i18n-sep="br"><b>પસંદ કરો કે છોડો:</b> બધા સાથે મળીને એક ખેલાડીને બહાર કાઢવા પસંદ કરો, અથવા રાઉન્ડ <b>છોડો</b>. બહાર નીકળેલાનું પાત્ર ખૂલે.<br/><span class="en">Together, pick one player to remove — or <b>skip</b> the round. The removed player’s role is revealed.</span></p>
         </div>
         <div class="step">
           <span class="step-num">6</span>
@@ -386,10 +398,10 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="js/icons.js?v=13"></script>
-  <script src="js/i18n.js?v=13"></script>
-  <script src="js/vocab.js?v=13"></script>
-  <script src="js/db.js?v=13"></script>
-  <script src="js/app.js?v=13"></script>
+  <script src="js/icons.js?v=14"></script>
+  <script src="js/i18n.js?v=14"></script>
+  <script src="js/vocab.js?v=14"></script>
+  <script src="js/db.js?v=14"></script>
+  <script src="js/app.js?v=14"></script>
 </body>
 </html>

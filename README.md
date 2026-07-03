@@ -7,23 +7,24 @@ installable **PWA** — no accounts, no server, no network required.
 
 ## How to play
 
-1. **ગોઠવણ / Setup** — choose the number of **players** and **imposters**. Optionally name players and pick a word category. Save the setup as a **preset** for next time.
+1. **ગોઠવણ / Setup** — choose the number of **players** and **imposters**, and a **game mode** (**Classic** shuffles the seating each game; **Linear** keeps the exact setup order). Optionally name players and pick a word category. Save the setup as a **preset** for next time.
 2. **જુઓ / Reveal** — pass the phone around. Each player **holds the card and pulls it down** to peek at their secret word; **releasing snaps the card back** and hides it again. Only then does **Next** unlock — so nobody can see the previous player's word, and peeking again is a visible gesture everyone would notice.
 3. Everyone gets the **same secret word** — except the **imposter(s)**, who instead receive a **similar word from the same category** (never the real one). That related hint lets an imposter blend in and bluff intelligently instead of guessing blind.
 4. **ચર્ચા / Discuss** — each player gives one clue about the word (without saying it). Use the built-in timer.
-5. **મત / Vote or Skip** — at the end of each discussion the group either **votes a player out** or **skips the round**. Voting a player out reveals whether they were an imposter or innocent.
-6. **રાઉન્ડ / Rounds** — if the game isn't over, a **suggesting round** is followed by another **discussion round**, then vote or skip again. This repeats until someone wins.
-7. **જીત / Win** — **civilians win** once every imposter has been voted out; **imposters win** the moment they equal or outnumber the surviving civilians. The result (with round count) is saved to **History**.
+5. **પસંદ / Remove or Skip** — at the end of each discussion the group together **picks one player to remove** or **skips the round**. Removing a player reveals whether they were an imposter or innocent.
+6. **રાઉન્ડ / Rounds** — if the game isn't over, a **suggesting round** is followed by another **discussion round**, then remove or skip again. This repeats until someone wins.
+7. **જીત / Win** — **civilians win** once every imposter has been removed; **imposters win** the moment they equal or outnumber the surviving civilians. The result (with round count) is saved to **History**.
 
 ## Features
 
 - **250+ Gujarati words** across 16 categories (animals, food, places, festivals, and more) — Gujarati with English in brackets.
 - **Imposter gets a related word** — the classic "undercover" twist: instead of nothing, each imposter secretly receives a *different* word from the **same category** as the real one (shared across imposters), so they can make a convincing, intelligent bluff.
 - **Manual setup** — any number of players (3–20) and imposters (1 to players−1).
+- **Game modes** — **Classic** shuffles the seating each game; **Linear** keeps the exact setup order (reveal, turns and removal all follow player 1, 2, 3…). Imposter roles are always assigned at random in both modes. The chosen mode is saved with presets.
 - **Presets** — save/load game configurations (IndexedDB).
 - **Score history** — every finished game (word, players, imposters, winner) stored locally (IndexedDB).
 - **Hold-to-peek card** pass-the-phone flow — the word is only visible while the card is held down, so passing the phone is cheat-proof.
-- **Round-based voting** — each round the group votes a player out or skips; ejected roles are revealed and win conditions (all imposters out ⇒ civilians win; imposters reach parity ⇒ imposters win) are checked automatically. Suggesting and discussion rounds alternate until someone wins.
+- **Round-based removal** — each round the group together selects one player to remove or skips; the removed player's role is revealed and win conditions (all imposters out ⇒ civilians win; imposters reach parity ⇒ imposters win) are checked automatically. Suggesting and discussion rounds alternate until someone wins.
 - **Per-slot language selection** — two dropdowns in the top-right pick a **primary** language and an optional **secondary** language, independently, from every registered language. Any language can fill either slot: secondary **None** shows one language only; e.g. English-primary + Gujarati-secondary, or Gujarati-only. The choice is saved and applied everywhere (UI, words and categories), with no flash of secondary text on load. Ships with Gujarati + English; see **[Adding a language](#adding-a-language)**.
 - Discussion **timer** with quick presets, progress bar and vibration on time-up.
 - **Offline-first PWA** — service worker caches the whole app shell.
