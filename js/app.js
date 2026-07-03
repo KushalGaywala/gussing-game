@@ -61,6 +61,7 @@
     players: 4,
     imposters: 1,
     category: 'all',
+    mode: 'classic', // 'classic' = shuffled seating; 'linear' = fixed setup order
     names: [],
   };
   const MIN_PLAYERS = 3;
@@ -184,7 +185,18 @@
     const maxImp = Math.max(1, config.players - 1);
     const fill = (str) => str.replace('{max}', maxImp).replace('{p}', config.players);
     $('#imposter-hint').innerHTML = fill(I18n.t('imp_hint')) + I18n.secSpan(fill(I18n.s('imp_hint')));
+    renderModeToggle();
     renderNameInputs();
+  }
+
+  // Segmented Classic / Linear control: highlight the active mode and describe it.
+  function renderModeToggle() {
+    $$('#mode-toggle .mode-opt').forEach((b) => {
+      b.classList.toggle('active', b.dataset.mode === config.mode);
+      b.setAttribute('aria-pressed', b.dataset.mode === config.mode ? 'true' : 'false');
+    });
+    const key = config.mode === 'linear' ? 'mode_linear_hint' : 'mode_classic_hint';
+    $('#mode-hint').innerHTML = I18n.t(key) + I18n.secSpan(I18n.s(key));
   }
 
   function renderNameInputs() {
@@ -266,6 +278,7 @@
       players: config.players,
       imposters: config.imposters,
       category: config.category,
+      mode: config.mode,
       names: config.names.slice(0, config.players),
     });
     $('#preset-name').value = '';
@@ -282,6 +295,7 @@
     config.players = p.players;
     config.imposters = p.imposters;
     config.category = p.category || 'all';
+    config.mode = p.mode || 'classic';
     config.names = (p.names || []).slice();
     config.names.length = config.players;
     clampImposters();
@@ -313,21 +327,23 @@
     const word = pool[randInt(pool.length)];
     const decoy = pickDecoy(word); // related word handed to the imposter(s)
 
-    // Build the roster in setup order, then shuffle the seating so the phone
-    // doesn't always start with player 1 — the reveal, turn order and voting all
-    // follow this randomized order.
+    // Build the roster in setup order. In Classic mode the seating is shuffled so
+    // the phone doesn't always start with player 1 — reveal, turn order and
+    // removal all follow that randomized order. In Linear mode the seating stays
+    // exactly as set up, so play runs in a fixed, predictable order.
     const baseNames = [];
     for (let i = 0; i < config.players; i++) {
       baseNames.push((config.names[i] && config.names[i].trim()) || `${I18n.t('player')} ${i + 1}`);
     }
-    const names = shuffle(baseNames);
+    const names = config.mode === 'linear' ? baseNames : shuffle(baseNames);
 
-    // assign roles to the shuffled seats: true = imposter
+    // Roles are always assigned at random (independent of mode), so the imposter
+    // is never predictable from the seating order.
     const roles = new Array(config.players).fill(false);
     const idxs = shuffle([...Array(config.players).keys()]).slice(0, config.imposters);
     idxs.forEach((i) => { roles[i] = true; });
 
-    game = { word, decoy, category: config.category, roles, names, index: 0 };
+    game = { word, decoy, category: config.category, mode: config.mode, roles, names, index: 0 };
     startRevealFor(0);
     showScreen('reveal');
   });
@@ -497,17 +513,17 @@
   }
   stack.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // ================= ROUNDS / VOTING =================
+  // ================= ROUNDS / REMOVAL =================
   // After the reveal, the game runs in rounds. Round 1 opens straight into a
   // discussion; every later round opens with a suggesting phase, then a
-  // discussion. Each discussion ends in a choice: Vote someone out, or Skip
-  // the round. A vote ejects a player, reveals their role, and checks the win
+  // discussion. Each discussion ends in a choice: pick a player to remove, or
+  // Skip the round. Removing a player reveals their role and checks the win
   // conditions; a skip just moves on. Civilians win when no imposters remain;
   // imposters win once they equal or outnumber the surviving civilians.
 
-  // Pass-the-phone ballot state (one voter at a time), or null between votes:
-  //   { order:[aliveIdx…], at, counts:[perPlayer], skips, choice:'skip'|'<idx>'|null }
-  let vote = null;
+  // Removal selection state (the group's single choice), or null when idle:
+  //   { choice: '<idx>' | null }
+  let pick = null;
 
   function startRounds() {
     game.alive = new Array(game.names.length).fill(true);
@@ -521,12 +537,15 @@
     renderRound();
   }
 
-  // Randomly nominate one living player to open the discussion, so nobody has to
-  // decide who speaks first. Re-picked each time a discussion phase begins.
+  // Nominate one living player to open the discussion, so nobody has to decide
+  // who speaks first. Classic mode picks at random; Linear mode picks the first
+  // living player in setup order, keeping the turn order predictable. Re-picked
+  // each time a discussion phase begins.
   function pickDiscussionStarter() {
     const alive = [];
     for (let i = 0; i < game.names.length; i++) if (game.alive[i]) alive.push(i);
-    game.starter = alive.length ? alive[randInt(alive.length)] : null;
+    if (!alive.length) { game.starter = null; return; }
+    game.starter = game.mode === 'linear' ? alive[0] : alive[randInt(alive.length)];
   }
 
   function aliveCounts() {
@@ -612,11 +631,11 @@
     renderRound();
   });
 
-  // discussion -> vote (pass the phone around for a secret ballot)
+  // discussion -> selection (the group picks one player to remove)
   $('#btn-to-vote').addEventListener('click', () => {
     if (!game) return;
     stopTimer();
-    startVote();
+    startSelection();
   });
 
   // discussion -> skip round (no ejection, no win check)
@@ -627,119 +646,61 @@
     nextRound();
   });
 
-  // ---- vote (pass-the-phone secret ballot) ----
-  // Voting mirrors the reveal: the phone goes to each living player one by one.
-  // Each voter privately picks another living player to eject — or Skip — then
-  // locks it in and passes on, which clears the choice so the next voter can't
-  // see it. After the last ballot the votes are tallied: the single most-voted
-  // player is ejected; a tie, or a Skip plurality, ejects no one. Either way the
-  // outcome screen shows the full vote distribution.
-  function startVote() {
-    const order = [];
-    for (let i = 0; i < game.names.length; i++) if (game.alive[i]) order.push(i);
-    vote = { order, at: 0, counts: new Array(game.names.length).fill(0), skips: 0, choice: null };
+  // ---- removal selection (the group picks one player) ----
+  // No more per-player secret ballot: the group discusses openly, then together
+  // selects a single living player to remove. Picking one and confirming ejects
+  // them, reveals their role and checks the win conditions. Backing out returns
+  // to the discussion, where the round can instead be skipped (removing no one).
+  function startSelection() {
+    pick = { choice: null };
     showScreen('vote');
-    renderBallot();
+    renderSelection();
   }
 
-  function renderVoteDots() {
-    const wrap = $('#vote-dots');
-    wrap.innerHTML = '';
-    for (let k = 0; k < vote.order.length; k++) {
-      const d = document.createElement('span');
-      d.className = 'dot-i' + (k < vote.at ? ' done' : k === vote.at ? ' cur' : '');
-      wrap.appendChild(d);
-    }
-  }
-
-  function voteOption(value, label, isSkip) {
+  function pickOption(value, label) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'vote-option' + (isSkip ? ' vote-skip' : '');
+    b.className = 'vote-option';
     b.dataset.idx = value;
-    const icon = isSkip ? Icons.svg('skip-forward', 'icon-s') : '';
-    b.innerHTML = `<span class="vote-name">${icon}${label}</span><span class="vote-radio"></span>`;
+    b.innerHTML = `<span class="vote-name">${label}</span><span class="vote-radio"></span>`;
     return b;
   }
 
-  function renderBallot() {
-    const voter = vote.order[vote.at];
-    vote.choice = null;
-    $('#vote-pass-instruction').textContent = I18n.tt(vote.at === 0 ? 'pass_to_first' : 'pass_to_next');
-    $('#vote-voter').textContent = game.names[voter];
-    $('#vote-turn-count').textContent = `${vote.at + 1} / ${vote.order.length}`;
-    renderVoteDots();
-
+  function renderSelection() {
     const list = $('#vote-list');
     list.innerHTML = '';
     game.names.forEach((n, i) => {
-      if (!game.alive[i] || i === voter) return; // living players except yourself
-      list.appendChild(voteOption(String(i), n, false));
+      if (!game.alive[i]) return; // any living player can be removed
+      list.appendChild(pickOption(String(i), n));
     });
-    list.appendChild(voteOption('skip', I18n.tt('vote_skip_option'), true));
-
-    const last = vote.at >= vote.order.length - 1;
-    $('#btn-confirm-vote-label').innerHTML = biSpan(last ? 'vote_tally' : 'vote_lock_in');
+    $('#btn-confirm-vote-label').innerHTML = biSpan('remove_confirm');
     $('#btn-confirm-vote').disabled = true;
   }
 
   $('#vote-list').addEventListener('click', (e) => {
     const opt = e.target.closest('.vote-option');
-    if (!opt || !vote) return;
-    vote.choice = opt.dataset.idx; // 'skip' or a stringified player index
+    if (!opt || !pick) return;
+    pick.choice = opt.dataset.idx; // a stringified player index
     $$('.vote-option', $('#vote-list')).forEach((o) => o.classList.toggle('selected', o === opt));
     $('#btn-confirm-vote').disabled = false;
   });
 
-  // Back cancels the whole vote — every ballot cast so far is discarded.
+  // Back cancels the selection and returns to the discussion.
   $('#btn-vote-back').addEventListener('click', () => {
     if (!game) return;
-    vote = null;
+    pick = null;
     game.phase = 'discuss';
     showScreen('round');
     renderRound();
   });
 
   $('#btn-confirm-vote').addEventListener('click', () => {
-    if (!vote || vote.choice == null) return;
-    if (vote.choice === 'skip') {
-      vote.skips++;
-    } else {
-      const idx = parseInt(vote.choice, 10);
-      if (!game.alive[idx]) return;
-      vote.counts[idx]++;
-    }
-    if (vote.at >= vote.order.length - 1) {
-      finishVote();
-    } else {
-      vote.at++;
-      renderBallot();
-    }
+    if (!pick || pick.choice == null) return;
+    const idx = parseInt(pick.choice, 10);
+    if (!game.alive[idx]) return;
+    pick = null;
+    eliminate(idx);
   });
-
-  // Winner = the option with the unique highest count. A tie (between players,
-  // or a player and Skip) or a Skip plurality returns null → no ejection.
-  function tallyVotes() {
-    const options = vote.order.map((i) => ({ key: i, count: vote.counts[i] }));
-    options.push({ key: 'skip', count: vote.skips });
-    let max = -1;
-    options.forEach((o) => { if (o.count > max) max = o.count; });
-    const top = options.filter((o) => o.count === max);
-    return top.length === 1 && top[0].key !== 'skip' ? top[0].key : null;
-  }
-
-  function finishVote() {
-    // Freeze the ballot for the distribution display, then resolve it.
-    game.lastVote = { order: vote.order.slice(), counts: vote.counts.slice(), skips: vote.skips };
-    const ejected = tallyVotes();
-    vote = null;
-    if (ejected == null) {
-      showScreen('outcome');
-      renderNoEjection();
-    } else {
-      eliminate(ejected);
-    }
-  }
 
   function eliminate(idx) {
     game.alive[idx] = false;
@@ -762,7 +723,7 @@
       const key = civWin ? 'civilians_win' : 'imposters_win';
       $('#outcome-title').textContent = I18n.t(key) + '!';
       secEl($('#outcome-title-en'), key);
-      body.innerHTML = gameOverBody(winner) + voteDistHtml();
+      body.innerHTML = gameOverBody(winner);
       if (!game.saved) {
         game.saved = true;
         saveResult(winner);
@@ -777,53 +738,11 @@
     } else {
       $('#outcome-title').textContent = I18n.t('voted_out');
       secEl($('#outcome-title-en'), 'voted_out');
-      body.innerHTML = ejectBody(idx, wasImp) + voteDistHtml();
+      body.innerHTML = ejectBody(idx, wasImp);
       const cont = mkBtn('btn btn-primary btn-lg', 'arrow-right', 'next_round');
       cont.addEventListener('click', () => nextRound());
       actions.appendChild(cont);
     }
-  }
-
-  // Shown when a vote resolves to no ejection (a tie, or a Skip plurality).
-  function renderNoEjection() {
-    const body = $('#outcome-body');
-    const actions = $('#outcome-actions');
-    actions.innerHTML = '';
-    $('#outcome-title').textContent = I18n.t('no_ejection_title');
-    secEl($('#outcome-title-en'), 'no_ejection_title');
-    const left = game.alive.filter(Boolean).length;
-    const notePri = `${I18n.t('no_ejection_note')} · ${left} ${I18n.t('players_left')} · ${I18n.t('game_continues')}`;
-    const noteSec = `${I18n.s('no_ejection_note')} · ${left} ${I18n.s('players_left')} · ${I18n.s('game_continues')}`;
-    body.innerHTML = `
-      <div class="outcome-card">
-        <div class="outcome-mark">${Icons.svg('skip-forward', 'icon-l')}</div>
-        <p class="outcome-role">${biSpan('no_ejection_title')}</p>
-      </div>
-      <p class="outcome-note">${notePri}${I18n.secondary ? '<br/>' + I18n.secSpan(noteSec) : ''}</p>
-      ${voteDistHtml()}`;
-    const cont = mkBtn('btn btn-primary btn-lg', 'arrow-right', 'next_round');
-    cont.addEventListener('click', () => nextRound());
-    actions.appendChild(cont);
-  }
-
-  // Compact bar chart of the just-completed ballot (candidates + Skip, high→low).
-  function voteDistHtml() {
-    const lv = game.lastVote;
-    if (!lv) return '';
-    const rows = lv.order.map((i) => ({ label: game.names[i], count: lv.counts[i], skip: false }));
-    rows.push({ label: I18n.tt('vote_skip_option'), count: lv.skips, skip: true });
-    rows.sort((a, b) => b.count - a.count);
-    const max = Math.max(1, ...rows.map((r) => r.count));
-    const items = rows.map((r) => `
-      <div class="vd-row${r.skip ? ' vd-skip' : ''}">
-        <span class="vd-name">${r.label}</span>
-        <span class="vd-bar"><span class="vd-fill" style="width:${Math.round((r.count / max) * 100)}%"></span></span>
-        <span class="vd-count">${r.count}</span>
-      </div>`).join('');
-    return `<div class="vote-dist">
-      <p class="vd-title">${biSpan('vote_distribution')}</p>
-      ${items}
-    </div>`;
   }
 
   function ejectBody(idx, wasImp) {
@@ -1016,6 +935,12 @@
     I18n.load();
     // one-time listeners (kept out of the rebuildable render fns so they don't stack)
     $('#sel-category').addEventListener('change', () => { config.category = $('#sel-category').value; });
+    $('#mode-toggle').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-mode]');
+      if (!b) return;
+      config.mode = b.dataset.mode;
+      renderModeToggle();
+    });
     $('#lang-btn').addEventListener('click', openLangSheet);
     $('#lang-sheet-close').addEventListener('click', closeLangSheet);
     $('#lang-sheet').addEventListener('click', (e) => { if (e.target === $('#lang-sheet')) closeLangSheet(); });
