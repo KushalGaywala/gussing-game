@@ -7,7 +7,7 @@
  * (?v=) and served no-cache by nginx, so a deploy can't leave a client running
  * new HTML against a stale cached script.
  */
-const VERSION = '12';
+const VERSION = '13';
 const CACHE = 'imposter-v' + VERSION;
 const ASSETS = [
   './',

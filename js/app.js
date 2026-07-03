@@ -25,10 +25,30 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 2200);
   }
 
+  // ---------- randomness ----------
+  // Prefer the platform CSPRNG (crypto.getRandomValues) over Math.random(),
+  // whose short sequences can feel patterned. randInt returns an unbiased
+  // integer in [0, n): a plain "value % n" skews toward small values when n
+  // doesn't divide 2^32 evenly, so we reject the tail that would cause the bias.
+  const cryptoObj = window.crypto || window.msCrypto || null;
+  function randInt(n) {
+    n = Math.floor(n);
+    if (n <= 1) return 0;
+    if (cryptoObj && cryptoObj.getRandomValues) {
+      const limit = Math.floor(0x100000000 / n) * n; // largest multiple of n ≤ 2^32
+      const buf = new Uint32Array(1);
+      let x;
+      do { cryptoObj.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+      return x % n;
+    }
+    return Math.floor(Math.random() * n); // legacy fallback
+  }
+
+  // Fisher-Yates, drawing each swap index from the CSPRNG above.
   function shuffle(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = randInt(i + 1);
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
@@ -279,7 +299,7 @@
   function pickDecoy(word) {
     const sameCat = VOCAB.filter((w) => w.cat === word.cat && w !== word);
     const pool = sameCat.length ? sameCat : VOCAB.filter((w) => w !== word);
-    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+    return pool.length ? pool[randInt(pool.length)] : null;
   }
 
   $('#btn-start').addEventListener('click', () => {
@@ -290,18 +310,22 @@
     }
     if (!pool.length) { toast(I18n.tt('no_words')); return; }
 
-    const word = pool[Math.floor(Math.random() * pool.length)];
+    const word = pool[randInt(pool.length)];
     const decoy = pickDecoy(word); // related word handed to the imposter(s)
 
-    // assign roles: true = imposter
+    // Build the roster in setup order, then shuffle the seating so the phone
+    // doesn't always start with player 1 — the reveal, turn order and voting all
+    // follow this randomized order.
+    const baseNames = [];
+    for (let i = 0; i < config.players; i++) {
+      baseNames.push((config.names[i] && config.names[i].trim()) || `${I18n.t('player')} ${i + 1}`);
+    }
+    const names = shuffle(baseNames);
+
+    // assign roles to the shuffled seats: true = imposter
     const roles = new Array(config.players).fill(false);
     const idxs = shuffle([...Array(config.players).keys()]).slice(0, config.imposters);
     idxs.forEach((i) => { roles[i] = true; });
-
-    const names = [];
-    for (let i = 0; i < config.players; i++) {
-      names.push((config.names[i] && config.names[i].trim()) || `${I18n.t('player')} ${i + 1}`);
-    }
 
     game = { word, decoy, category: config.category, roles, names, index: 0 };
     startRevealFor(0);
