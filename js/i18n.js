@@ -69,6 +69,8 @@
     pass_to_first: { gu: 'ફોન આ ખેલાડીને આપો', en: 'Pass the phone to' },
     pass_to_next: { gu: 'હવે ફોન આગળ આપો', en: 'Pass the phone to' },
     imposter_title: { gu: 'તમે ઈમ્પોસ્ટર છો', en: 'You are the imposter' },
+    imposter_hint_label: { gu: 'તમારો મળતો-આવતો શબ્દ', en: 'Your related word' },
+    imposter_hint_sub: { gu: 'આનાથી હોશિયારીથી બહાનું બનાવો — ભળી જાઓ, પકડાશો નહીં!', en: 'Bluff with it — blend in, avoid getting caught' },
     imposter_sub: { gu: 'શબ્દ જાણ્યા વગર બહાનું બનાવો!', en: 'Bluff it — you have no word' },
 
     // ---- round ----
@@ -142,8 +144,8 @@
       en: '<b>Reveal:</b> Pass the phone around. Hold &amp; pull the card down to peek at your word — releasing hides it again.',
     },
     how_3: {
-      gu: '<b>ઈમ્પોસ્ટર</b>ને શબ્દ મળતો નથી — તેણે બહાનું બનાવવું પડે!',
-      en: '<b>Imposters</b> get no word — they must bluff.',
+      gu: '<b>ઈમ્પોસ્ટર</b>ને મળતો-આવતો શબ્દ મળે છે (સાચો નહીં) — તેનાથી હોશિયારીથી બહાનું બનાવે!',
+      en: '<b>Imposters</b> get a related word (not the real one) — just enough to bluff cleverly.',
     },
     how_4: {
       gu: '<b>ચર્ચા:</b> દરેક ખેલાડી શબ્દ વિશે એક સંકેત આપે — શબ્દ બોલ્યા વગર.',

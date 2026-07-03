@@ -9,7 +9,7 @@ installable **PWA** — no accounts, no server, no network required.
 
 1. **ગોઠવણ / Setup** — choose the number of **players** and **imposters**. Optionally name players and pick a word category. Save the setup as a **preset** for next time.
 2. **જુઓ / Reveal** — pass the phone around. Each player **holds the card and pulls it down** to peek at their secret word; **releasing snaps the card back** and hides it again. Only then does **Next** unlock — so nobody can see the previous player's word, and peeking again is a visible gesture everyone would notice.
-3. Everyone gets the **same Gujarati word** — except the **imposter(s)**, who get no word and must bluff.
+3. Everyone gets the **same secret word** — except the **imposter(s)**, who instead receive a **similar word from the same category** (never the real one). That related hint lets an imposter blend in and bluff intelligently instead of guessing blind.
 4. **ચર્ચા / Discuss** — each player gives one clue about the word (without saying it). Use the built-in timer.
 5. **મત / Vote or Skip** — at the end of each discussion the group either **votes a player out** or **skips the round**. Voting a player out reveals whether they were an imposter or innocent.
 6. **રાઉન્ડ / Rounds** — if the game isn't over, a **suggesting round** is followed by another **discussion round**, then vote or skip again. This repeats until someone wins.
@@ -18,6 +18,7 @@ installable **PWA** — no accounts, no server, no network required.
 ## Features
 
 - **250+ Gujarati words** across 16 categories (animals, food, places, festivals, and more) — Gujarati with English in brackets.
+- **Imposter gets a related word** — the classic "undercover" twist: instead of nothing, each imposter secretly receives a *different* word from the **same category** as the real one (shared across imposters), so they can make a convincing, intelligent bluff.
 - **Manual setup** — any number of players (3–20) and imposters (1 to players−1).
 - **Presets** — save/load game configurations (IndexedDB).
 - **Score history** — every finished game (word, players, imposters, winner) stored locally (IndexedDB).
