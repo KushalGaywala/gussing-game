@@ -536,6 +536,33 @@ html.no-secondary [data-i18n-sec] { display: none; }
 .impo-title { font-size: 1.7rem; font-weight: 800; color: var(--danger); margin: 0; }
 .impo-sub { color: var(--text-2); margin: 8px 0 0; font-size: 0.92rem; }
 
+/* the imposter's related hint word — a bordered card set apart from the role
+   reveal so it never reads as the civilians' real word. Kept compact so role +
+   hint + caption all fit inside the fixed-height pullable card. */
+.imposter-card .impo-mark { width: 54px; height: 54px; margin-bottom: 8px; }
+.imposter-card .impo-title { line-height: 1.12; }
+.impo-hint {
+  margin-top: 10px;
+  padding: 11px 18px 13px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 16px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.impo-hint-label {
+  margin-bottom: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+.impo-hint .word-cat { margin-bottom: 7px; }
+.impo-hint .word-gu { font-size: clamp(1.6rem, 7.5vw, 2.1rem); }
+.impo-hint .word-en { font-size: 0.92rem; margin-top: 4px; }
+
 .dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 300px; }
 .dot-i { width: 8px; height: 8px; border-radius: 50%; background: var(--surface-3); }
 .dot-i.done { background: var(--accent); }
@@ -857,6 +884,10 @@ html.no-secondary [data-i18n-sec] { display: none; }
   .impo-mark, .cover-mark { width: 46px; height: 46px; border-radius: 14px; margin-bottom: 8px; }
   .impo-title { font-size: 1.25rem; }
   .impo-sub { font-size: 0.8rem; margin-top: 4px; }
+  .impo-hint { margin-top: 8px; padding: 10px 14px 12px; }
+  .impo-hint-label { margin-bottom: 6px; }
+  .impo-hint .word-cat { margin-bottom: 6px; }
+  .impo-hint .word-gu { font-size: 1.5rem; }
   .cover-chevrons { display: none; }
   .reveal-wrap { gap: 12px; }
 }

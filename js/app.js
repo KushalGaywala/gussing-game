@@ -271,6 +271,17 @@
   });
 
   // ================= START GAME =================
+  // The imposter's bluffing aid: a DIFFERENT word from the SAME category as the
+  // secret, so it's genuinely related. Picked once per game and shared by every
+  // imposter, keeping their clues consistent with one another. Falls back to any
+  // other word if the category has a single entry, and to null (the classic
+  // blind-bluff card) only when the whole vocabulary is a single word.
+  function pickDecoy(word) {
+    const sameCat = VOCAB.filter((w) => w.cat === word.cat && w !== word);
+    const pool = sameCat.length ? sameCat : VOCAB.filter((w) => w !== word);
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+  }
+
   $('#btn-start').addEventListener('click', () => {
     // pick vocab pool
     let pool = VOCAB;
@@ -280,6 +291,7 @@
     if (!pool.length) { toast(I18n.tt('no_words')); return; }
 
     const word = pool[Math.floor(Math.random() * pool.length)];
+    const decoy = pickDecoy(word); // related word handed to the imposter(s)
 
     // assign roles: true = imposter
     const roles = new Array(config.players).fill(false);
@@ -291,7 +303,7 @@
       names.push((config.names[i] && config.names[i].trim()) || `${I18n.t('player')} ${i + 1}`);
     }
 
-    game = { word, category: config.category, roles, names, index: 0 };
+    game = { word, decoy, category: config.category, roles, names, index: 0 };
     startRevealFor(0);
     showScreen('reveal');
   });
@@ -323,24 +335,42 @@
     }
   }
 
+  // The visible word block (category chip + word + optional secondary line),
+  // shared by the civilian's secret word and the imposter's related hint word.
+  function wordBlock(w) {
+    const c = CATEGORIES[w.cat];
+    return `
+      <span class="word-cat">${c ? I18n.of(c) + I18n.secSpan(' · ' + I18n.ofs(c)) : ''}</span>
+      <p class="word-gu">${I18n.of(w)}</p>
+      ${I18n.secondary ? `<p class="word-en">(${I18n.ofs(w)})</p>` : ''}`;
+  }
+
   function populatePeekContent() {
     const i = game.index;
     const content = $('#peek-content');
     if (game.roles[i]) {
-      content.innerHTML = `
+      // Imposters learn their role AND get a related word (same category, never
+      // the real one) to bluff with. If no decoy exists (single-word pool) we
+      // fall back to the classic blind-bluff card.
+      content.innerHTML = game.decoy
+        ? `
+        <div class="imposter-card">
+          <div class="impo-mark">${Icons.svg('mask', 'icon-l')}</div>
+          <p class="impo-title">${biSpan('imposter_title')}</p>
+          <div class="impo-hint">
+            <span class="impo-hint-label">${biSpan('imposter_hint_label')}</span>
+            ${wordBlock(game.decoy)}
+          </div>
+          <p class="impo-sub">${biBr('imposter_hint_sub')}</p>
+        </div>`
+        : `
         <div class="imposter-card">
           <div class="impo-mark">${Icons.svg('mask', 'icon-l')}</div>
           <p class="impo-title">${biSpan('imposter_title')}</p>
           <p class="impo-sub">${biBr('imposter_sub')}</p>
         </div>`;
     } else {
-      const c = CATEGORIES[game.word.cat];
-      content.innerHTML = `
-        <div>
-          <span class="word-cat">${c ? I18n.of(c) + I18n.secSpan(' · ' + I18n.ofs(c)) : ''}</span>
-          <p class="word-gu">${I18n.of(game.word)}</p>
-          ${I18n.secondary ? `<p class="word-en">(${I18n.ofs(game.word)})</p>` : ''}
-        </div>`;
+      content.innerHTML = `<div>${wordBlock(game.word)}</div>`;
     }
   }
 
