@@ -86,10 +86,15 @@
     skip_round: { gu: 'રાઉન્ડ છોડો — મત નહીં', en: 'Skip round — no vote' },
     round_skipped: { gu: 'રાઉન્ડ છોડ્યો', en: 'Round skipped' },
 
-    // ---- vote ----
+    // ---- vote (pass-the-phone secret ballot) ----
     vote_title: { gu: 'કોને બહાર કાઢવો?', en: 'Vote someone out' },
-    vote_desc: { gu: 'જૂથે જેને સૌથી વધુ મત આપ્યા તે ખેલાડી પસંદ કરો.', en: 'Select the player the group voted out.' },
-    vote_out: { gu: 'બહાર કાઢો', en: 'Vote out' },
+    vote_ballot_desc: { gu: 'ગુપ્ત રીતે એક ખેલાડીને મત આપો, અથવા છોડો — પછી ફોન આગળ આપો.', en: 'Secretly vote for one player, or skip — then pass the phone on.' },
+    vote_skip_option: { gu: 'છોડો — કોઈને નહીં', en: 'Skip — no one' },
+    vote_lock_in: { gu: 'મત નોંધો — આગળ આપો', en: 'Lock in & pass' },
+    vote_tally: { gu: 'મત ગણો', en: 'Count the votes' },
+    vote_distribution: { gu: 'મતની વહેંચણી', en: 'Vote distribution' },
+    no_ejection_title: { gu: 'કોઈ બહાર નહીં', en: 'No one voted out' },
+    no_ejection_note: { gu: 'મત વહેંચાઈ ગયા', en: 'The votes were split' },
 
     // ---- outcome ----
     result: { gu: 'પરિણામ', en: 'Result' },
@@ -145,8 +150,8 @@
       en: '<b>Discuss:</b> Each player gives one clue without saying the word.',
     },
     how_5: {
-      gu: '<b>મત આપો કે છોડો:</b> દરેક રાઉન્ડમાં જૂથ કાં તો એક ખેલાડીને બહાર કાઢવા <b>મત આપે</b>, અથવા <b>રાઉન્ડ છોડે</b>. બહાર નીકળેલો ખેલાડી ઈમ્પોસ્ટર હતો કે નિર્દોષ તે ખૂલે.',
-      en: '<b>Vote or skip:</b> Each round the group either <b>votes</b> a player out or <b>skips</b>. The ejected player\'s role is revealed.',
+      gu: '<b>મત આપો કે છોડો:</b> ફોન એક-એક કરીને ફેરવો — દરેક ખેલાડી ગુપ્ત રીતે કોઈને બહાર કાઢવા મત આપે કે <b>છોડે</b>. સૌથી વધુ મત મેળવનાર બહાર; બરાબરી થાય તો કોઈ નહીં. બહાર નીકળેલાનું પાત્ર ખૂલે.',
+      en: '<b>Vote or skip:</b> Pass the phone around — each player secretly votes someone out or <b>skips</b>. The most-voted player leaves (a tie ejects no one); their role is revealed.',
     },
     how_6: {
       gu: '<b>આગળના રાઉન્ડ:</b> જો રમત ચાલુ રહે તો સૂચન રાઉન્ડ પછી ફરી ચર્ચા રાઉન્ડ આવે — મતદાન સુધી.',
