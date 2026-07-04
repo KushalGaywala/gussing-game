@@ -1055,6 +1055,7 @@
   }
   function mpEnterJoin() {
     showScreen('mp-join');
+    mpSetJoinBusy(false); // reset in case a previous attempt left the form disabled
     const nameEl = $('#mp-join-name');
     if (!nameEl.value) nameEl.value = mpStoredName();
     setTimeout(() => { $('#mp-join-code').focus(); }, 60);
@@ -1077,7 +1078,15 @@
       onReady(code) {
         mp.code = code;
         mp.myId = Net.myId;
-        mp.host.players.push({ id: mp.myId, name: mp.myName, isHost: true, connected: true, alive: true, ready: false });
+        // onReady re-fires whenever the host's broker link reconnects, so add the
+        // host player exactly ONCE — otherwise a brief network blip would create a
+        // second "host" in the room.
+        const self = hostPlayer(mp.myId);
+        if (self) {
+          self.isHost = true; self.connected = true; self.name = mp.myName;
+        } else {
+          mp.host.players.push({ id: mp.myId, name: mp.myName, isHost: true, connected: true, alive: true, ready: false });
+        }
         mpSetStatus('ok');
         hostSyncPub();
         renderMP();
@@ -1090,13 +1099,14 @@
 
   function mpStartJoin(code, name) {
     mp = {
-      amHost: false, code: code, status: 'connecting', myId: null, myName: name,
-      pub: mpEmptyPub(), myCard: null, _qrDone: false, _ph: null,
+      amHost: false, code: code, status: 'connecting', joined: false, myId: null, myName: name,
+      pub: mpEmptyPub(), myCard: null, _qrDone: false, _ph: null, _joinTimer: null,
     };
     mpQrUrl = null;
-    showScreen('mp-lobby');
-    mpApplyRoleVis();
-    mpRenderConnecting();
+    // Stay on the Join screen showing a "connecting" state — we only move to the
+    // room once the host has actually accepted us (first state received).
+    mpSetJoinBusy(true);
+    mp._joinTimer = setTimeout(() => { if (mp && !mp.joined) mpJoinTimedOut(); }, 20000);
     Net.join(code, {
       onOpen() {
         mp.myId = Net.myId;
@@ -1108,6 +1118,45 @@
       onLost() { mpSetStatus('lost'); mpHandleLost(); },
       onError: mpOnNetError,
     });
+  }
+
+  // The Join button's connecting/disabled state (we linger on the Join screen).
+  function mpSetJoinBusy(busy) {
+    const btn = $('#mp-join-btn');
+    const label = $('#mp-join-btn-label');
+    if (!btn) return;
+    btn.disabled = busy;
+    btn.classList.toggle('is-busy', busy);
+    $('#mp-join-code').disabled = busy;
+    $('#mp-join-name').disabled = busy;
+    $('#mp-scan-btn').disabled = busy;
+    if (busy) label.textContent = I18n.t('connecting');
+    else label.innerHTML = biSpan('join_action');
+  }
+
+  // We're in the room: stop the connecting state; renderMP (called next) shows
+  // the lobby (or, on a mid-game reconnect, whatever screen the phase maps to).
+  function mpEnterRoom() {
+    mp.joined = true;
+    if (mp._joinTimer) { clearTimeout(mp._joinTimer); mp._joinTimer = null; }
+    mpSetJoinBusy(false);
+    mpApplyRoleVis();
+  }
+
+  // Joining failed before we made it into the room — stay on the Join screen.
+  function mpJoinFailed(msgKey) {
+    mpTeardown();
+    showScreen('mp-join');
+    mpSetJoinBusy(false);
+    if (msgKey) toast(I18n.tt(msgKey));
+  }
+
+  // On timeout, report WHY based on how far the transport got: never reached the
+  // matchmaking server vs. reached it but couldn't open a direct link to the host
+  // (typically Wi-Fi AP/client isolation — the TURN relay should normally cover it).
+  function mpJoinTimedOut() {
+    const st = (window.Net && Net.stage) || '';
+    mpJoinFailed(st === 'broker' ? 'join_no_server' : 'join_no_host');
   }
 
   // ---------------- HOST: authority ----------------
@@ -1157,6 +1206,10 @@
   }
 
   function hostSyncPub() {
+    // Belt-and-suspenders: never let a duplicate player id survive into the
+    // public roster (e.g. a reconnect race), and keep exactly one host.
+    const seen = {};
+    mp.host.players = mp.host.players.filter((p) => (seen[p.id] ? false : (seen[p.id] = true)));
     mp.pub.players = mp.host.players.map((p) => ({
       id: p.id, name: p.name, isHost: p.isHost, connected: p.connected, alive: p.alive, ready: p.ready,
     }));
@@ -1411,9 +1464,10 @@
         mp.pub = msg.pub;
         if (mp.pub.phase === 'lobby') mp.myCard = null;
         mpApplyRemoteTimer(mp.pub.timer);
+        if (!mp.joined) mpEnterRoom(); // first state from the host = we're in the room
         renderMP();
         break;
-      case 'card': mp.myCard = msg.card; renderMP(); break;
+      case 'card': mp.myCard = msg.card; if (mp.joined) renderMP(); break;
       case 'timer': mpApplyRemoteTimer(msg.timer); break;
       case 'reject': mpHandleReject(msg.reason); break;
       case 'kicked': mpHandleKicked(); break;
@@ -1422,8 +1476,7 @@
   }
 
   function mpHandleReject(reason) {
-    toast(I18n.tt(reason === 'full' ? 'room_full' : 'game_in_progress'));
-    mpBackToJoin();
+    mpJoinFailed(reason === 'full' ? 'room_full' : 'game_in_progress');
   }
   function mpHandleKicked() { toast(I18n.tt('kicked_msg')); mpTeardown(); showScreen('home'); }
   function mpHandleHostLeft() { toast(I18n.tt('host_left')); mpTeardown(); showScreen('home'); }
@@ -1436,8 +1489,12 @@
   function mpOnNetError(e) {
     if (!mp) return;
     const t = e && e.type;
+    if (!mp.amHost && !mp.joined) {
+      // any error before we've made it into the room keeps us on the Join screen
+      mpJoinFailed(t === 'no-room' ? 'no_room_found' : 'net_error');
+      return;
+    }
     if (t === 'no-room') { toast(I18n.tt('no_room_found')); mpBackToJoin(); return; }
-    if (t === 'unavailable-id') { toast(I18n.tt('net_error')); return; }
     toast(I18n.tt('net_error'));
     if (mp.status === 'connecting') mpBackToJoin();
   }
@@ -1446,6 +1503,7 @@
     const wasHost = mp && mp.amHost;
     mpTeardown();
     showScreen(wasHost ? 'home' : 'mp-join');
+    if (!wasHost) mpSetJoinBusy(false);
   }
 
   // ---------------- shared: status + teardown ----------------
@@ -1463,6 +1521,7 @@
   function mpTeardown() {
     mpClearTimerInterval();
     if (mp) {
+      if (mp._joinTimer) { clearTimeout(mp._joinTimer); mp._joinTimer = null; }
       try { if (mp.amHost) Net.close(); else Net.leave(); } catch (e) { /* ignore */ }
     }
     mp = null;
@@ -2004,7 +2063,7 @@
     }
     if (window.qrcode) { draw(); return; }
     const s = document.createElement('script');
-    s.src = 'js/vendor/qrcode.js?v=17';
+    s.src = 'js/vendor/qrcode.js?v=19';
     s.onload = draw;
     s.onerror = () => { box.hidden = true; };
     document.head.appendChild(s);
@@ -2087,7 +2146,7 @@
     mpScan.ctx = mpScan.canvas.getContext('2d', { willReadFrequently: true });
     if (window.jsQR) { mpScanLoop(); return; }
     const s = document.createElement('script');
-    s.src = 'js/vendor/jsqr.min.js?v=17';
+    s.src = 'js/vendor/jsqr.min.js?v=19';
     s.onload = () => { if (mpScan) mpScanLoop(); };
     s.onerror = () => { toast(I18n.tt('camera_unsupported')); mpCloseScanner(); };
     document.head.appendChild(s);
