@@ -205,6 +205,7 @@
     refreshPresetSelect();
     renderSetup();          // imposter hint + name placeholders
     $('#preset-name').placeholder = I18n.tt('preset_name_ph');
+    if (mp) mpApplyLang();  // re-render the live multiplayer screen in the new language
   }
 
   // ---------- current game state ----------
@@ -216,6 +217,7 @@
     if (nav) {
       const dest = nav.getAttribute('data-nav');
       if (dest === 'history') renderHistory();
+      if (dest === 'home' && mp) mpTeardown(); // leaving a room via a Back/Home link
       showScreen(dest);
       return;
     }
@@ -301,6 +303,7 @@
       if (!b) return;
       const delta = parseInt(b.getAttribute('data-delta'), 10);
       const kind = stepper.getAttribute('data-stepper');
+      if (kind !== 'players' && kind !== 'imposters') return; // multiplayer steppers are wired separately
       if (kind === 'players') {
         config.players = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, config.players + delta));
         config.names.length = config.players; // trim extra names
@@ -988,6 +991,1209 @@
     toast(I18n.tt('history_cleared'));
   });
 
+  // ================= MULTIPLAYER ("Host a game") =================
+  // A host-authoritative star over WebRTC (transport in js/net.js). The HOST
+  // owns the entire game and broadcasts a PUBLIC snapshot to everyone; each
+  // player's PRIVATE card (their real word, or the imposter's decoy) is sent
+  // ONLY to that player, so no device ever learns another player's role. Clients
+  // send intents (hello / ready / vote); the host resolves them and re-broadcasts.
+  // The host is also a player and renders itself through the very same path a
+  // client uses — the only difference is that host-only controls are shown and
+  // the host drives every state transition.
+
+  const MP_MIN_PLAYERS = 3;
+  const MP_MAX_PLAYERS = 12;         // a sane cap for a phone star topology
+  const MP_DISCUSS_DEFAULT = 180;    // seconds
+  const MP_NAME_KEY = 'imposter-mp-name';
+
+  // The whole multiplayer session, or null when we're not in a room.
+  let mp = null;
+  let mpTimerId = null;              // host: authoritative countdown; client: interpolation
+  let mpRevealSeen = false;          // have I peeked my own card yet this reveal?
+  let mpQrUrl = null;                // last URL rendered as a QR (avoids re-rendering)
+
+  // ---- small utilities ----
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function mpCleanName(s) { return String(s || '').replace(/\s+/g, ' ').trim().slice(0, 24); }
+  function mpStoredName() { try { return localStorage.getItem(MP_NAME_KEY) || ''; } catch (e) { return ''; } }
+  function mpStoreName(n) { try { localStorage.setItem(MP_NAME_KEY, n); } catch (e) { /* ignore */ } }
+  function netReady() {
+    if (window.Net && Net.supported()) return true;
+    toast(I18n.tt('webrtc_unsupported'));
+    return false;
+  }
+  function mpEmptyPub() {
+    return {
+      phase: 'lobby', round: 0, players: [], config: { imposters: 1, category: 'all' },
+      starterId: null,
+      timer: { running: false, remaining: MP_DISCUSS_DEFAULT, duration: MP_DISCUSS_DEFAULT },
+      votes: {}, voteClosed: false, lastElim: null, skipped: false, skipReason: null,
+      winner: null, reveal: null, revealed: {},
+    };
+  }
+  function mpPlayerPub(id) {
+    const a = mp.pub.players;
+    for (let i = 0; i < a.length; i++) if (a[i].id === id) return a[i];
+    return null;
+  }
+  function mpMe() { return mp ? mpPlayerPub(mp.myId) : null; }
+  function hostPlayer(id) {
+    const a = mp.host.players;
+    for (let i = 0; i < a.length; i++) if (a[i].id === id) return a[i];
+    return null;
+  }
+  function hostAliveConnected() { return mp.host.players.filter((p) => p.alive && p.connected); }
+
+  // ---- entry points ----
+  function mpEnterHost() {
+    if (!netReady()) return;
+    mpStartHost();
+  }
+  function mpEnterJoin() {
+    showScreen('mp-join');
+    const nameEl = $('#mp-join-name');
+    if (!nameEl.value) nameEl.value = mpStoredName();
+    setTimeout(() => { $('#mp-join-code').focus(); }, 60);
+  }
+
+  function mpStartHost() {
+    const name = mpCleanName(mpStoredName()) || I18n.t('host_name_default');
+    mp = {
+      amHost: true, code: null, status: 'connecting', myId: null, myName: name,
+      pub: mpEmptyPub(), myCard: null, _qrDone: false, _ph: null,
+      host: { players: [], secret: null, cardById: {}, config: { imposters: 1, category: 'all' } },
+    };
+    mpQrUrl = null;
+    showScreen('mp-lobby');
+    mpApplyRoleVis();
+    $('#mp-host-name').value = name;
+    mpBuildCategorySelect();
+    mpRenderConnecting();
+    Net.host({
+      onReady(code) {
+        mp.code = code;
+        mp.myId = Net.myId;
+        mp.host.players.push({ id: mp.myId, name: mp.myName, isHost: true, connected: true, alive: true, ready: false });
+        mpSetStatus('ok');
+        hostSyncPub();
+        renderMP();
+      },
+      onMessage: hostOnMessage,
+      onLeave: hostOnLeave,
+      onError: mpOnNetError,
+    });
+  }
+
+  function mpStartJoin(code, name) {
+    mp = {
+      amHost: false, code: code, status: 'connecting', myId: null, myName: name,
+      pub: mpEmptyPub(), myCard: null, _qrDone: false, _ph: null,
+    };
+    mpQrUrl = null;
+    showScreen('mp-lobby');
+    mpApplyRoleVis();
+    mpRenderConnecting();
+    Net.join(code, {
+      onOpen() {
+        mp.myId = Net.myId;
+        Net.sendHost({ t: 'hello', name: mp.myName });
+        mpSetStatus('ok');
+      },
+      onMessage: clientOnMessage,
+      onReconnecting() { mpSetStatus('reconnecting'); },
+      onLost() { mpSetStatus('lost'); mpHandleLost(); },
+      onError: mpOnNetError,
+    });
+  }
+
+  // ---------------- HOST: authority ----------------
+  function hostOnMessage(peerId, msg) {
+    if (!mp || !mp.amHost || !msg) return;
+    switch (msg.t) {
+      case 'hello': hostHandleHello(peerId, msg); break;
+      case 'ready': hostSetReady(peerId, true); break;
+      case 'vote': hostRecordVote(peerId, msg.target); break;
+      case 'leave': hostOnLeave(peerId); break;
+    }
+  }
+
+  function hostHandleHello(peerId, msg) {
+    const name = mpCleanName(msg.name) || I18n.t('player');
+    const existing = hostPlayer(peerId);
+    const started = mp.pub.phase !== 'lobby';
+    if (!existing) {
+      if (started) { Net.send(peerId, { t: 'reject', reason: 'in-progress' }); return; }
+      if (mp.host.players.length >= MP_MAX_PLAYERS) { Net.send(peerId, { t: 'reject', reason: 'full' }); return; }
+      mp.host.players.push({ id: peerId, name, isHost: false, connected: true, alive: true, ready: false });
+      toast(name + ' · ' + I18n.t('online'));
+    } else {
+      existing.name = name;
+      existing.connected = true; // a returning player (reconnect / refresh)
+    }
+    Net.send(peerId, { t: 'welcome' });
+    if (started && mp.host.cardById[peerId]) Net.send(peerId, { t: 'card', card: mp.host.cardById[peerId] });
+    hostSyncPub();
+    hostBroadcast();
+    if (started) Net.send(peerId, { t: 'timer', timer: mp.pub.timer });
+    hostMaybeAutoAdvance();
+  }
+
+  function hostOnLeave(peerId) {
+    if (!mp || !mp.amHost) return;
+    const p = hostPlayer(peerId);
+    if (!p || p.isHost) return;
+    if (mp.pub.phase === 'lobby') {
+      mp.host.players = mp.host.players.filter((x) => x.id !== peerId);
+    } else {
+      p.connected = false; // keep their seat + role so they can rejoin
+    }
+    hostSyncPub();
+    hostBroadcast();
+    hostMaybeAutoAdvance();
+  }
+
+  function hostSyncPub() {
+    mp.pub.players = mp.host.players.map((p) => ({
+      id: p.id, name: p.name, isHost: p.isHost, connected: p.connected, alive: p.alive, ready: p.ready,
+    }));
+    mp.pub.config = { imposters: mp.host.config.imposters, category: mp.host.config.category };
+  }
+
+  function hostBroadcast() {
+    if (!mp || !mp.amHost) return;
+    Net.broadcast({ t: 'state', pub: mp.pub });
+    renderMP();
+  }
+
+  function hostStartGame() {
+    const connected = mp.host.players.filter((p) => p.connected);
+    if (connected.length < MP_MIN_PLAYERS) {
+      toast(I18n.tt('need_players_mp').replace(/\{min\}/g, MP_MIN_PLAYERS));
+      return;
+    }
+    const imposters = Math.min(mp.host.config.imposters, connected.length - 1);
+    let pool = VOCAB;
+    if (mp.host.config.category !== 'all') pool = VOCAB.filter((w) => w.cat === mp.host.config.category);
+    if (!pool.length) pool = VOCAB;
+    const word = pool[randInt(pool.length)];
+    const decoy = pickDecoy(word);
+
+    const ids = connected.map((p) => p.id);
+    const impIds = shuffle(ids).slice(0, imposters);
+    const roleById = {};
+    impIds.forEach((id) => { roleById[id] = true; });
+    mp.host.secret = { word, decoy, roleById };
+    mp.host.cardById = {};
+
+    mp.host.players.forEach((p) => {
+      if (!p.connected) { p.alive = false; p.ready = false; return; } // spectate if offline at start
+      p.alive = true;
+      p.ready = false;
+      const isImp = !!roleById[p.id];
+      mp.host.cardById[p.id] = isImp ? { imposter: true, word: decoy } : { imposter: false, word };
+    });
+
+    mp.pub.phase = 'reveal';
+    mp.pub.round = 1;
+    mp.pub.starterId = null;
+    mp.pub.votes = {};
+    mp.pub.voteClosed = false;
+    mp.pub.lastElim = null;
+    mp.pub.skipped = false;
+    mp.pub.winner = null;
+    mp.pub.reveal = null;
+    mp.pub.revealed = {};
+    mpResetTimer(MP_DISCUSS_DEFAULT);
+    hostSyncPub();
+
+    mp.host.players.forEach((p) => {
+      const card = mp.host.cardById[p.id];
+      if (!card) return;
+      if (p.id === mp.myId) mp.myCard = card;
+      else Net.send(p.id, { t: 'card', card });
+    });
+    hostBroadcast();
+  }
+
+  function hostSetReady(peerId, val) {
+    const p = hostPlayer(peerId);
+    if (!p || mp.pub.phase !== 'reveal') return;
+    p.ready = val;
+    hostSyncPub();
+    hostBroadcast();
+    hostMaybeAutoAdvance();
+  }
+
+  function hostMaybeAutoAdvance() {
+    if (!mp || !mp.amHost) return;
+    if (mp.pub.phase === 'reveal') {
+      const alive = mp.host.players.filter((p) => p.alive && p.connected);
+      if (alive.length >= 1 && alive.every((p) => p.ready)) hostBeginDiscuss();
+    } else if (mp.pub.phase === 'vote') {
+      hostMaybeResolveVote();
+    }
+  }
+
+  function hostBeginDiscuss() {
+    mp.pub.phase = 'discuss';
+    mp.pub.votes = {};
+    mp.pub.voteClosed = false;
+    hostPickStarter();
+    hostSyncPub();
+    hostBroadcast();
+    mpStartTimer(); // the shared discussion clock starts automatically
+  }
+
+  function hostPickStarter() {
+    const a = hostAliveConnected();
+    mp.pub.starterId = a.length ? a[randInt(a.length)].id : null;
+  }
+
+  function hostOpenVoting() {
+    mp.pub.phase = 'vote';
+    mp.pub.votes = {};
+    mp.pub.voteClosed = false;
+    hostSyncPub();
+    hostBroadcast();
+  }
+
+  function hostRecordVote(peerId, target) {
+    if (mp.pub.phase !== 'vote' || mp.pub.voteClosed) return;
+    const voter = hostPlayer(peerId);
+    if (!voter || !voter.alive || !voter.connected) return;
+    if (target !== 'skip') {
+      const tp = hostPlayer(target);
+      if (!tp || !tp.alive) return;
+      if (target === peerId) return; // no voting for yourself
+    }
+    mp.pub.votes[peerId] = target;
+    hostSyncPub();
+    hostBroadcast();
+    hostMaybeResolveVote();
+  }
+
+  function hostMaybeResolveVote() {
+    const voters = hostAliveConnected();
+    if (voters.length && voters.every((p) => Object.prototype.hasOwnProperty.call(mp.pub.votes, p.id))) {
+      hostResolveVote();
+    }
+  }
+
+  function hostResolveVote() {
+    if (mp.pub.phase !== 'vote') return;
+    mp.pub.voteClosed = true;
+
+    const counts = {};
+    Object.keys(mp.pub.votes).forEach((voterId) => {
+      const t = mp.pub.votes[voterId];
+      if (t && t !== 'skip') counts[t] = (counts[t] || 0) + 1;
+    });
+    let top = null, topN = 0, tie = false;
+    Object.keys(counts).forEach((id) => {
+      if (counts[id] > topN) { top = id; topN = counts[id]; tie = false; }
+      else if (counts[id] === topN) { tie = true; }
+    });
+
+    if (!top || tie || topN === 0) {
+      mp.pub.lastElim = null;
+      mp.pub.skipped = true;
+      mp.pub.skipReason = Object.keys(counts).length ? 'tie' : 'none';
+    } else {
+      const victim = hostPlayer(top);
+      victim.alive = false;
+      const wasImp = !!mp.host.secret.roleById[victim.id];
+      mp.pub.lastElim = { id: victim.id, name: victim.name, wasImp };
+      mp.pub.skipped = false;
+      mp.pub.revealed[victim.id] = wasImp;
+    }
+
+    mp.pub.winner = hostCheckWinner();
+    if (mp.pub.winner) {
+      mp.pub.phase = 'gameover';
+      mp.pub.reveal = hostBuildReveal();
+      mpStopTimer();
+      hostSaveHistory();
+    } else {
+      mp.pub.phase = 'outcome';
+    }
+    hostSyncPub();
+    hostBroadcast();
+    if (navigator.vibrate) navigator.vibrate(mp.pub.lastElim && mp.pub.lastElim.wasImp ? [30, 60, 30] : 30);
+  }
+
+  function hostCheckWinner() {
+    let imp = 0, civ = 0;
+    mp.host.players.forEach((p) => {
+      if (!p.alive) return;
+      if (mp.host.secret.roleById[p.id]) imp++; else civ++;
+    });
+    if (imp === 0) return 'civilians';
+    if (imp >= civ) return 'imposters';
+    return null;
+  }
+
+  function hostBuildReveal() {
+    const w = mp.host.secret.word;
+    return {
+      word: { gu: w.gu, en: w.en, cat: w.cat },
+      roster: mp.host.players.map((p) => ({
+        id: p.id, name: p.name, imposter: !!mp.host.secret.roleById[p.id], alive: p.alive,
+      })),
+    };
+  }
+
+  function hostSaveHistory() {
+    const w = mp.host.secret.word;
+    return DB.addHistory({
+      date: new Date().toISOString(),
+      wordGu: w.gu, wordEn: w.en, cat: w.cat,
+      players: mp.host.players.length,
+      imposters: Object.keys(mp.host.secret.roleById).length,
+      imposterNames: mp.host.players.filter((p) => mp.host.secret.roleById[p.id]).map((p) => p.name),
+      playerNames: mp.host.players.map((p) => p.name),
+      winner: mp.pub.winner,
+      rounds: mp.pub.round,
+      mode: 'host',
+    });
+  }
+
+  function hostNextRound() {
+    mp.pub.round += 1;
+    mp.pub.phase = 'discuss';
+    mp.pub.votes = {};
+    mp.pub.voteClosed = false;
+    hostPickStarter();
+    hostSyncPub();
+    hostBroadcast();
+  }
+
+  function hostPlayAgain() {
+    mp.pub.phase = 'lobby';
+    mp.pub.round = 0;
+    mp.pub.votes = {};
+    mp.pub.voteClosed = false;
+    mp.pub.lastElim = null;
+    mp.pub.skipped = false;
+    mp.pub.winner = null;
+    mp.pub.reveal = null;
+    mp.pub.revealed = {};
+    mp.pub.starterId = null;
+    mp.host.secret = null;
+    mp.host.cardById = {};
+    mp.myCard = null;
+    mp.host.players.forEach((p) => { p.alive = true; p.ready = false; });
+    mpResetTimer(MP_DISCUSS_DEFAULT);
+    hostSyncPub();
+    hostBroadcast();
+  }
+
+  function hostKick(id, name) {
+    confirmDialog({
+      titleKey: 'remove_player_confirm', confirmKey: 'remove_action',
+      icon: 'log-out', tone: 'danger',
+    }).then((ok) => {
+      if (!ok || !mp || !mp.amHost) return;
+      Net.kick(id);
+      hostOnLeave(id);
+    });
+  }
+
+  // ---------------- CLIENT ----------------
+  function clientOnMessage(msg) {
+    if (!mp || mp.amHost || !msg) return;
+    switch (msg.t) {
+      case 'welcome': mpSetStatus('ok'); break;
+      case 'state':
+        mp.pub = msg.pub;
+        if (mp.pub.phase === 'lobby') mp.myCard = null;
+        mpApplyRemoteTimer(mp.pub.timer);
+        renderMP();
+        break;
+      case 'card': mp.myCard = msg.card; renderMP(); break;
+      case 'timer': mpApplyRemoteTimer(msg.timer); break;
+      case 'reject': mpHandleReject(msg.reason); break;
+      case 'kicked': mpHandleKicked(); break;
+      case 'host-left': mpHandleHostLeft(); break;
+    }
+  }
+
+  function mpHandleReject(reason) {
+    toast(I18n.tt(reason === 'full' ? 'room_full' : 'game_in_progress'));
+    mpBackToJoin();
+  }
+  function mpHandleKicked() { toast(I18n.tt('kicked_msg')); mpTeardown(); showScreen('home'); }
+  function mpHandleHostLeft() { toast(I18n.tt('host_left')); mpTeardown(); showScreen('home'); }
+  function mpHandleLost() {
+    confirmDialog({
+      titleKey: 'connection_lost', confirmKey: 'home', cancelKey: 'cancel', icon: 'wifi-off', tone: 'danger',
+    }).then(() => { mpTeardown(); showScreen('home'); });
+  }
+
+  function mpOnNetError(e) {
+    if (!mp) return;
+    const t = e && e.type;
+    if (t === 'no-room') { toast(I18n.tt('no_room_found')); mpBackToJoin(); return; }
+    if (t === 'unavailable-id') { toast(I18n.tt('net_error')); return; }
+    toast(I18n.tt('net_error'));
+    if (mp.status === 'connecting') mpBackToJoin();
+  }
+
+  function mpBackToJoin() {
+    const wasHost = mp && mp.amHost;
+    mpTeardown();
+    showScreen(wasHost ? 'home' : 'mp-join');
+  }
+
+  // ---------------- shared: status + teardown ----------------
+  function mpSetStatus(s) {
+    if (!mp) return;
+    const prev = mp.status;
+    mp.status = s;
+    if (prev !== s) {
+      if (s === 'reconnecting') toast(I18n.tt('reconnecting'));
+      else if (s === 'ok' && prev === 'reconnecting') toast(I18n.tt('reconnected'));
+    }
+    mpUpdateConnChip();
+  }
+
+  function mpTeardown() {
+    mpClearTimerInterval();
+    if (mp) {
+      try { if (mp.amHost) Net.close(); else Net.leave(); } catch (e) { /* ignore */ }
+    }
+    mp = null;
+    mpRevealSeen = false;
+    mpQrUrl = null;
+  }
+
+  function mpLeave() {
+    const host = mp && mp.amHost;
+    confirmDialog({
+      titleKey: host ? 'close_room_confirm' : 'leave_room_confirm',
+      messageKey: host ? 'close_room_message' : 'leave_room_message',
+      confirmKey: 'leave_action', icon: 'log-out', tone: 'danger',
+    }).then((ok) => {
+      if (!ok) return;
+      mpTeardown();
+      showScreen('home');
+    });
+  }
+
+  // ---------------- shared: timer ----------------
+  function mpClearTimerInterval() { if (mpTimerId) { clearInterval(mpTimerId); mpTimerId = null; } }
+  function mpResetTimer(sec) {
+    mp.pub.timer = { running: false, remaining: sec, duration: sec };
+    mpClearTimerInterval();
+    mpTimerRender();
+  }
+  function mpStartTimer() {
+    if (!mp || !mp.amHost) return;
+    const t = mp.pub.timer;
+    if (t.remaining <= 0) t.remaining = t.duration;
+    t.running = true;
+    mpClearTimerInterval();
+    mpTimerId = setInterval(mpHostTick, 1000);
+    mpBroadcastTimer();
+    mpTimerRender();
+    mpTimerControlsRender();
+  }
+  function mpStopTimer() {
+    if (!mp) return;
+    if (!mp.amHost) { mpClearTimerInterval(); return; }
+    mp.pub.timer.running = false;
+    mpClearTimerInterval();
+    mpBroadcastTimer();
+    mpTimerRender();
+    mpTimerControlsRender();
+  }
+  function mpHostTick() {
+    const t = mp.pub.timer;
+    t.remaining--;
+    if (t.remaining <= 0) {
+      t.remaining = 0;
+      t.running = false;
+      mpClearTimerInterval();
+      toast(I18n.tt('time_up'));
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+    mpBroadcastTimer();
+    mpTimerRender();
+    if (!t.running) mpTimerControlsRender();
+  }
+  function mpSetTimerPreset(sec) {
+    if (!mp || !mp.amHost) return;
+    mp.pub.timer = { running: false, remaining: sec, duration: sec };
+    mpClearTimerInterval();
+    mpBroadcastTimer();
+    mpTimerRender();
+    mpTimerControlsRender();
+  }
+  function mpBroadcastTimer() { if (mp && mp.amHost) Net.broadcast({ t: 'timer', timer: mp.pub.timer }); }
+  function mpApplyRemoteTimer(timer) {
+    if (!mp || mp.amHost || !timer) return;
+    mp.pub.timer = timer;
+    mpClearTimerInterval();
+    if (timer.running && timer.remaining > 0) {
+      mpTimerId = setInterval(() => {
+        const t = mp.pub.timer;
+        if (t.remaining > 0) { t.remaining--; mpTimerRender(); }
+        if (t.remaining <= 0) mpClearTimerInterval();
+      }, 1000);
+    }
+    mpTimerRender();
+  }
+  function mpTimerRender() {
+    if (!mp) return;
+    const t = mp.pub.timer || { remaining: 0, duration: MP_DISCUSS_DEFAULT };
+    const d = $('#mp-timer-display');
+    if (d) { d.textContent = fmt(Math.max(0, t.remaining)); d.classList.toggle('warn', t.remaining <= 10); }
+    const bar = $('#mp-timer-bar-fill');
+    if (bar) bar.style.width = (t.duration ? (Math.max(0, t.remaining) / t.duration) * 100 : 0) + '%';
+  }
+  function mpTimerControlsRender() {
+    const tog = $('#mp-timer-toggle');
+    if (!tog || !mp) return;
+    const running = mp.pub.timer && mp.pub.timer.running;
+    tog.innerHTML = running
+      ? Icons.svg('pause', 'icon-s') + '<span>' + I18n.t('timer_pause') + '</span>'
+      : Icons.svg('play', 'icon-s') + '<span>' + I18n.t('timer_start') + '</span>';
+    const dur = mp.pub.timer && mp.pub.timer.duration;
+    $$('[data-mp-timer-set]').forEach((b) => {
+      b.classList.toggle('active', parseInt(b.getAttribute('data-mp-timer-set'), 10) === dur);
+    });
+  }
+
+  // ---------------- render dispatch ----------------
+  function mpApplyRoleVis() {
+    const host = !!(mp && mp.amHost);
+    $$('.host-only').forEach((el) => { el.hidden = !host; });
+    $$('.client-only').forEach((el) => { el.hidden = host; });
+  }
+
+  function mpShow(name) {
+    const el = document.getElementById('screen-' + name);
+    if (el && !el.classList.contains('active')) showScreen(name);
+  }
+
+  function renderMP() {
+    if (!mp) return;
+    const ph = mp.pub.phase;
+    const entering = mp._ph !== ph;
+    mp._ph = ph;
+
+    let screen = 'mp-lobby';
+    if (ph === 'reveal') screen = 'mp-reveal';
+    else if (ph === 'discuss') screen = 'mp-round';
+    else if (ph === 'vote') screen = 'mp-vote';
+    else if (ph === 'outcome' || ph === 'gameover') screen = 'mp-outcome';
+
+    if (ph === 'reveal' && entering) {
+      mpRevealSeen = false;
+      const cover = $('#mp-peek-cover');
+      if (cover) cover.style.transform = 'translateY(0)';
+    }
+
+    mpShow(screen);
+    mpApplyRoleVis();
+    mpUpdateConnChip();
+
+    if (ph === 'lobby') mpRenderLobby();
+    else if (ph === 'reveal') mpRenderReveal();
+    else if (ph === 'discuss') mpRenderRound();
+    else if (ph === 'vote') mpRenderVote();
+    else mpRenderOutcome();
+  }
+
+  function mpUpdateConnChip() {
+    const active = $('.screen.active');
+    if (!active) return;
+    const chip = active.querySelector('.conn-chip');
+    if (!chip) return;
+    const s = mp ? mp.status : 'lost';
+    let cls = 'ok', txt = I18n.t('online');
+    if (s === 'connecting') { cls = 'warn'; txt = I18n.t('connecting'); }
+    else if (s === 'reconnecting') { cls = 'warn'; txt = I18n.t('reconnecting'); }
+    else if (s === 'lost') { cls = 'bad'; txt = I18n.t('connection_lost'); }
+    chip.className = 'conn-chip ' + cls;
+    chip.textContent = txt;
+    chip.hidden = false;
+  }
+
+  function mpRenderConnecting() {
+    $('#mp-room-code').textContent = '····';
+    $('#mp-roster').innerHTML = '';
+    $('#mp-player-count').textContent = '0';
+    const wait = $('#mp-lobby-wait');
+    wait.hidden = false;
+    wait.textContent = I18n.tt(mp && mp.amHost ? 'creating_room' : 'connecting');
+    $('#mp-qr').hidden = true;
+    mpUpdateConnChip();
+  }
+
+  // ---------------- render: lobby ----------------
+  function mpRenderLobby() {
+    $('#mp-lobby-title').textContent = I18n.t(mp.amHost ? 'lobby_host_title' : 'lobby_title');
+    secEl($('#mp-lobby-sub'), mp.amHost ? 'lobby_host_title' : 'lobby_title');
+    $('#mp-room-label').textContent = I18n.tt(mp.amHost ? 'share_code' : 'lobby_title');
+    $('#mp-room-code').textContent = mp.code || '····';
+
+    if (mp.code && !mp._qrDone) { mpEnsureQR(mpJoinUrl()); mp._qrDone = true; }
+
+    mpRenderRoster($('#mp-roster'));
+    $('#mp-player-count').textContent = mp.pub.players.length;
+
+    if (mp.amHost) {
+      mpUpdateImpHint();
+      const conn = mp.pub.players.filter((p) => p.connected).length;
+      $('#mp-start-btn').disabled = conn < MP_MIN_PLAYERS;
+      const wait = $('#mp-lobby-wait');
+      if (conn < MP_MIN_PLAYERS) {
+        wait.hidden = false;
+        wait.textContent = I18n.t('need_players_mp').replace(/\{min\}/g, MP_MIN_PLAYERS);
+      } else {
+        wait.hidden = true;
+      }
+    } else {
+      const wait = $('#mp-lobby-wait');
+      wait.hidden = false;
+      const catKey = mp.pub.config.category;
+      const cat = catKey === 'all'
+        ? I18n.t('all_categories')
+        : (CATEGORIES[catKey] ? I18n.of(CATEGORIES[catKey]) : '');
+      wait.textContent = mp.pub.config.imposters + ' ' + I18n.t('imposters_count') + ' · ' + cat + ' — ' + I18n.t('waiting_host');
+    }
+  }
+
+  function mpRenderRoster(wrap) {
+    wrap.innerHTML = '';
+    mp.pub.players.forEach((p) => {
+      const item = document.createElement('div');
+      item.className = 'roster-item' + (p.connected ? '' : ' is-off');
+
+      const av = document.createElement('div');
+      av.className = 'r-avatar';
+      av.textContent = (p.name || '?').trim().charAt(0) || '?';
+
+      const nm = document.createElement('div');
+      nm.className = 'r-name';
+      nm.textContent = p.name;
+
+      const tags = document.createElement('div');
+      tags.className = 'r-tags';
+      if (p.id === mp.myId) {
+        const y = document.createElement('span');
+        y.className = 'r-badge you';
+        y.textContent = I18n.t('you_label');
+        tags.appendChild(y);
+      }
+      if (p.isHost) {
+        const h = document.createElement('span');
+        h.className = 'r-badge host';
+        h.innerHTML = Icons.svg('crown', 'icon-s') + I18n.t('host_label');
+        tags.appendChild(h);
+      }
+      if (mp.pub.phase === 'reveal' && p.ready) {
+        const r = document.createElement('span');
+        r.className = 'r-badge ready';
+        r.innerHTML = Icons.svg('check', 'icon-s');
+        tags.appendChild(r);
+      }
+
+      const dot = document.createElement('span');
+      dot.className = 'r-dot' + (p.connected ? '' : ' off');
+
+      item.appendChild(av);
+      item.appendChild(nm);
+      item.appendChild(tags);
+      item.appendChild(dot);
+
+      if (mp.amHost && !p.isHost && mp.pub.phase === 'lobby') {
+        const k = document.createElement('button');
+        k.className = 'r-kick';
+        k.setAttribute('aria-label', 'Remove');
+        k.innerHTML = Icons.svg('x', 'icon-s');
+        k.addEventListener('click', () => hostKick(p.id, p.name));
+        item.appendChild(k);
+      }
+      wrap.appendChild(item);
+    });
+  }
+
+  function mpUpdateImpHint() {
+    const players = mp.host.players.filter((p) => p.connected).length;
+    const maxImp = Math.max(1, players - 1);
+    if (mp.host.config.imposters > maxImp) mp.host.config.imposters = maxImp;
+    const fill = (str) => str.replace('{max}', maxImp).replace('{p}', players);
+    $('#mp-imp-hint').innerHTML = fill(I18n.t('imp_hint')) + I18n.secSpan(fill(I18n.s('imp_hint')));
+    $('#mp-val-imposters').textContent = mp.host.config.imposters;
+  }
+
+  function mpJoinUrl() {
+    return location.origin + location.pathname + '?join=' + (mp.code || '');
+  }
+
+  // ---------------- render: reveal ----------------
+  function mpCardHTML(card) {
+    if (!card) return '<p class="pass-instruction">' + I18n.t('connecting') + '</p>';
+    if (card.imposter) {
+      return card.word
+        ? '<div class="imposter-card">' +
+            '<div class="impo-mark">' + Icons.svg('mask', 'icon-l') + '</div>' +
+            '<p class="impo-title">' + biSpan('imposter_title') + '</p>' +
+            '<div class="impo-hint">' +
+              '<span class="impo-hint-label">' + biSpan('imposter_hint_label') + '</span>' +
+              wordBlock(card.word) +
+            '</div>' +
+            '<p class="impo-sub">' + biBr('imposter_hint_sub') + '</p>' +
+          '</div>'
+        : '<div class="imposter-card">' +
+            '<div class="impo-mark">' + Icons.svg('mask', 'icon-l') + '</div>' +
+            '<p class="impo-title">' + biSpan('imposter_title') + '</p>' +
+            '<p class="impo-sub">' + biBr('imposter_sub') + '</p>' +
+          '</div>';
+    }
+    return '<div>' + wordBlock(card.word) + '</div>';
+  }
+
+  function mpRenderReveal() {
+    const me = mpMe();
+    $('#mp-reveal-name').textContent = me ? me.name : mp.myName;
+    $('#mp-peek-content').innerHTML = mpCardHTML(mp.myCard);
+
+    const ready = !!(me && me.ready);
+    const btn = $('#mp-ready-btn');
+    const label = $('#mp-ready-label');
+    if (ready) { btn.disabled = true; label.innerHTML = biSpan('youre_ready'); }
+    else { btn.disabled = !mpRevealSeen; label.innerHTML = biSpan('im_ready'); }
+
+    const alive = mp.pub.players.filter((p) => p.alive);
+    const readyN = alive.filter((p) => p.ready).length;
+    const rc = $('#mp-ready-count');
+    rc.textContent = (readyN >= alive.length && alive.length > 0)
+      ? I18n.t('everyone_ready')
+      : readyN + ' / ' + alive.length + ' ' + I18n.t('ready_word');
+  }
+
+  function mpDoReady() {
+    const me = mpMe();
+    if (!me || me.ready) return;
+    if (mp.amHost) { hostSetReady(mp.myId, true); return; }
+    Net.sendHost({ t: 'ready' });
+    $('#mp-ready-btn').disabled = true;
+    $('#mp-ready-label').innerHTML = biSpan('youre_ready');
+  }
+
+  // ---------------- render: discussion ----------------
+  function mpRenderRound() {
+    $('#mp-round-chip').textContent = I18n.t('round_word') + ' ' + mp.pub.round;
+    const st = $('#mp-round-starter');
+    const starter = mp.pub.starterId ? mpPlayerPub(mp.pub.starterId) : null;
+    if (starter) {
+      const fill = (s) => s.replace('{name}', esc(starter.name));
+      st.innerHTML = fill(I18n.t('discuss_starter')) + I18n.secSpan(fill(I18n.s('discuss_starter')));
+      st.hidden = false;
+    } else {
+      st.hidden = true;
+    }
+    mpRenderAlive($('#mp-alive-chips'));
+    mpTimerRender();
+    mpTimerControlsRender();
+  }
+
+  function mpRenderAlive(wrap) {
+    wrap.innerHTML = '';
+    mp.pub.players.forEach((p) => {
+      const chip = document.createElement('span');
+      if (p.alive) {
+        chip.className = 'p-chip' + (p.connected ? '' : ' is-off');
+        chip.textContent = p.name;
+      } else {
+        const wasImp = mp.pub.revealed && mp.pub.revealed[p.id];
+        chip.className = 'p-chip out' + (wasImp ? ' was-imp' : '');
+        chip.innerHTML = '<span class="p-name">' + esc(p.name) + '</span>' + (wasImp ? Icons.svg('mask', 'icon-s') : '');
+      }
+      wrap.appendChild(chip);
+    });
+    const left = mp.pub.players.filter((p) => p.alive).length;
+    const sum = document.createElement('p');
+    sum.className = 'alive-sum';
+    sum.innerHTML = left + ' ' + I18n.t('players_left') + I18n.secSpan(left + ' ' + I18n.s('players_left'));
+    wrap.appendChild(sum);
+  }
+
+  // ---------------- render: voting (open ballots) ----------------
+  function mpRenderVote() {
+    const list = $('#mp-vote-list');
+    list.innerHTML = '';
+    const me = mpMe();
+    const alive = mp.pub.players.filter((p) => p.alive);
+    const voters = alive.filter((p) => p.connected);
+    const iCanVote = !!(me && me.alive && me.connected && !mp.pub.voteClosed);
+    const myVote = me ? mp.pub.votes[me.id] : undefined;
+
+    const byTarget = {};
+    Object.keys(mp.pub.votes).forEach((vid) => {
+      const t = mp.pub.votes[vid];
+      if (t === 'skip') return;
+      (byTarget[t] = byTarget[t] || []).push(mpPlayerPub(vid));
+    });
+
+    const votedCount = voters.filter((p) => Object.prototype.hasOwnProperty.call(mp.pub.votes, p.id)).length;
+    $('#mp-vote-count').textContent = votedCount + ' / ' + voters.length + ' ' + I18n.t('voted_count');
+
+    alive.forEach((cand) => {
+      const voted = byTarget[cand.id] || [];
+      const isMe = me && cand.id === me.id;
+      const clickable = iCanVote && !isMe;
+      const el = document.createElement(clickable ? 'button' : 'div');
+      el.className = 'cand' + (myVote === cand.id ? ' mine' : '') + (clickable ? '' : ' locked');
+      const pct = voters.length ? Math.round((voted.length / voters.length) * 100) : 0;
+      const voterChips = voted.length
+        ? '<div class="cand-voters">' + voted.map((v) =>
+            '<span class="voter-chip' + (me && v && v.id === me.id ? ' mark' : '') + '">' + esc(v ? v.name : '?') + '</span>').join('') + '</div>'
+        : '';
+      el.innerHTML =
+        '<div class="cand-top">' +
+          '<span class="cand-name">' + esc(cand.name) + (isMe ? ' <span class="cand-you">' + I18n.t('you_label') + '</span>' : '') + '</span>' +
+          '<span class="cand-count"><b>' + voted.length + '</b> ' + I18n.t('votes_word') + '</span>' +
+        '</div>' +
+        '<div class="cand-bar"><i style="width:' + pct + '%"></i></div>' +
+        voterChips;
+      if (clickable) el.addEventListener('click', () => mpCastVote(cand.id));
+      list.appendChild(el);
+    });
+
+    const skipBtn = $('#mp-vote-skip');
+    skipBtn.classList.toggle('mine', myVote === 'skip');
+    skipBtn.disabled = !iCanVote;
+
+    // who hasn't voted yet
+    let vwait = document.getElementById('mp-vote-wait');
+    if (!vwait) {
+      vwait = document.createElement('p');
+      vwait.id = 'mp-vote-wait';
+      vwait.className = 'wait-note';
+      $('#screen-mp-vote .play-wrap').appendChild(vwait);
+    }
+    const pending = voters.filter((p) => !Object.prototype.hasOwnProperty.call(mp.pub.votes, p.id)).map((p) => p.name);
+    vwait.hidden = pending.length === 0;
+    if (pending.length) vwait.textContent = I18n.t('waiting_votes') + ' ' + pending.join(', ');
+  }
+
+  function mpCastVote(target) {
+    const me = mpMe();
+    if (!me || !me.alive || mp.pub.voteClosed) return;
+    if (mp.amHost) hostRecordVote(mp.myId, target);
+    else Net.sendHost({ t: 'vote', target });
+  }
+
+  // ---------------- render: outcome / game over ----------------
+  function mpRenderOutcome() {
+    const over = mp.pub.phase === 'gameover';
+    const titleEl = $('#mp-outcome-title');
+    const titleEn = $('#mp-outcome-title-en');
+    const body = $('#mp-outcome-body');
+    const actions = $('#mp-outcome-actions');
+    const wait = $('#mp-outcome-wait');
+    actions.innerHTML = '';
+    wait.hidden = true;
+
+    if (over) {
+      const civWin = mp.pub.winner === 'civilians';
+      const key = civWin ? 'civilians_win' : 'imposters_win';
+      titleEl.textContent = I18n.t(key) + '!';
+      secEl(titleEn, key);
+      body.innerHTML = mpGameOverBody();
+      if (mp.amHost) {
+        const again = mkBtn('btn btn-primary btn-lg', 'rotate', 'play_again');
+        again.addEventListener('click', hostPlayAgain);
+        actions.appendChild(again);
+      } else {
+        wait.hidden = false;
+        wait.textContent = I18n.t('waiting_host_action');
+      }
+      const home = mkBtn('btn btn-ghost', 'log-out', 'home');
+      home.addEventListener('click', () => { mpTeardown(); showScreen('home'); });
+      actions.appendChild(home);
+    } else if (mp.pub.skipped) {
+      titleEl.textContent = I18n.t('round_skipped_mp');
+      secEl(titleEn, 'round_skipped_mp');
+      body.innerHTML = mpSkipBody();
+      mpOutcomeContinue(actions, wait);
+    } else {
+      titleEl.textContent = I18n.t('voted_out');
+      secEl(titleEn, 'voted_out');
+      body.innerHTML = mpEjectBody();
+      mpOutcomeContinue(actions, wait);
+    }
+  }
+
+  function mpOutcomeContinue(actions, wait) {
+    if (mp.amHost) {
+      const cont = mkBtn('btn btn-primary btn-lg', 'arrow-right', 'next_round');
+      cont.addEventListener('click', hostNextRound);
+      actions.appendChild(cont);
+    } else {
+      wait.hidden = false;
+      wait.textContent = I18n.t('waiting_host_action');
+    }
+  }
+
+  function mpSkipBody() {
+    const msg = mp.pub.skipReason === 'none' ? I18n.t('no_votes_removal') : I18n.t('tie_no_removal');
+    return '<div class="outcome-card">' +
+      '<div class="outcome-mark">' + Icons.svg('users', 'icon-l') + '</div>' +
+      '<p class="outcome-role">' + esc(msg) + '</p></div>';
+  }
+
+  function mpEjectBody() {
+    const e = mp.pub.lastElim;
+    if (!e) return mpSkipBody();
+    const left = mp.pub.players.filter((p) => p.alive).length;
+    return '<div class="outcome-card ' + (e.wasImp ? 'good' : 'bad') + '">' +
+        '<div class="outcome-mark">' + Icons.svg(e.wasImp ? 'mask' : 'users', 'icon-l') + '</div>' +
+        '<p class="outcome-name">' + esc(e.name) + '</p>' +
+        '<p class="outcome-role">' + biSpan(e.wasImp ? 'was_imposter' : 'was_innocent') + '</p>' +
+      '</div>' +
+      '<p class="outcome-note">' + left + ' ' + I18n.t('players_left') +
+        (I18n.secondary ? '<br/>' + I18n.secSpan(left + ' ' + I18n.s('players_left')) : '') + '</p>';
+  }
+
+  function mpGameOverBody() {
+    const r = mp.pub.reveal;
+    const civWin = mp.pub.winner === 'civilians';
+    const c = CATEGORIES[r.word.cat];
+    const roster = r.roster.map((p) =>
+      '<div class="roster-row">' +
+        '<span class="roster-name">' + esc(p.name) + '</span>' +
+        '<span class="roster-tags">' +
+          '<span class="chip ' + (p.imposter ? 'chip-danger' : 'chip-civ') + '">' + I18n.t(p.imposter ? 'imposter_role' : 'civilian_role') + '</span>' +
+          '<span class="roster-state ' + (p.alive ? 'in' : 'out') + '">' + I18n.t(p.alive ? 'in_play' : 'out_play') + I18n.secSpan(' · ' + I18n.s(p.alive ? 'in_play' : 'out_play')) + '</span>' +
+        '</span>' +
+      '</div>').join('');
+    return '<div class="outcome-card ' + (civWin ? 'good' : 'bad') + '">' +
+        '<div class="outcome-mark">' + Icons.svg(civWin ? 'users' : 'mask', 'icon-l') + '</div>' +
+        '<p class="outcome-role big">' + biSpan(civWin ? 'all_imposters_caught' : 'imposters_parity') + '</p>' +
+      '</div>' +
+      '<div class="word-reveal">' +
+        '<span class="word-cat">' + (c ? I18n.of(c) + I18n.secSpan(' · ' + I18n.ofs(c)) : '') + '</span>' +
+        '<p class="word-gu">' + I18n.of(r.word) + (I18n.secondary ? ' <span class="word-en">(' + I18n.ofs(r.word) + ')</span>' : '') + '</p>' +
+      '</div>' +
+      '<div class="roster">' + roster + '</div>';
+  }
+
+  // ---------------- QR / share ----------------
+  function mpEnsureQR(url) {
+    if (mpQrUrl === url) return;
+    const box = $('#mp-qr');
+    const canvas = $('#mp-qr-canvas');
+    if (!box || !canvas) return;
+    function draw() {
+      try {
+        const qr = window.qrcode(0, 'M');
+        qr.addData(url);
+        qr.make();
+        canvas.innerHTML = qr.createImgTag(6, 2);
+        box.hidden = false;
+        mpQrUrl = url;
+      } catch (e) { box.hidden = true; }
+    }
+    if (window.qrcode) { draw(); return; }
+    const s = document.createElement('script');
+    s.src = 'js/vendor/qrcode.js?v=16';
+    s.onload = draw;
+    s.onerror = () => { box.hidden = true; };
+    document.head.appendChild(s);
+  }
+
+  function mpShareRoom() {
+    if (!mp || !mp.code) return;
+    const url = mpJoinUrl();
+    const text = I18n.t('share_text') + ' ' + mp.code;
+    if (navigator.share) {
+      navigator.share({ title: I18n.t('app_name'), text, url }).catch(() => {});
+    } else {
+      mpCopy(url, 'link_copied');
+    }
+  }
+  function mpCopy(str, toastKey) {
+    const done = () => toast(I18n.tt(toastKey));
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(str).then(done, () => mpCopyFallback(str, done));
+    } else {
+      mpCopyFallback(str, done);
+    }
+  }
+  function mpCopyFallback(str, done) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = str;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---------------- language refresh ----------------
+  function mpApplyLang() {
+    if (!mp) return;
+    mpBuildCategorySelect();
+    renderMP();
+  }
+  function mpBuildCategorySelect() {
+    const sel = $('#mp-sel-category');
+    if (!sel) return;
+    sel.innerHTML = '';
+    const optAll = document.createElement('option');
+    optAll.value = 'all';
+    optAll.textContent = I18n.tt('all_categories');
+    sel.appendChild(optAll);
+    Object.keys(CATEGORIES).forEach((key) => {
+      const o = document.createElement('option');
+      o.value = key;
+      o.textContent = pairOf(CATEGORIES[key]);
+      sel.appendChild(o);
+    });
+    sel.value = (mp && mp.amHost) ? mp.host.config.category : 'all';
+  }
+
+  // ---------------- wiring ----------------
+  function mpWirePeek() {
+    const cover = $('#mp-peek-cover');
+    const stack = $('#mp-peek-stack');
+    if (!cover || !stack) return;
+    const show = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      cover.style.transform = 'translateY(88%)';
+      if (!mpRevealSeen) {
+        mpRevealSeen = true;
+        const btn = $('#mp-ready-btn');
+        const me = mpMe();
+        if (btn && !(me && me.ready)) btn.disabled = false;
+        if (navigator.vibrate) navigator.vibrate(12);
+      }
+    };
+    const hide = () => { cover.style.transform = 'translateY(0)'; };
+    if (window.PointerEvent) {
+      cover.addEventListener('pointerdown', (e) => {
+        show(e);
+        try { cover.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
+      });
+      cover.addEventListener('pointerup', hide);
+      cover.addEventListener('pointercancel', hide);
+      cover.addEventListener('lostpointercapture', hide);
+    } else {
+      cover.addEventListener('touchstart', show, { passive: false });
+      cover.addEventListener('touchend', hide);
+      cover.addEventListener('touchcancel', hide);
+    }
+    stack.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  function mpInit() {
+    // home entry points
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-mp]');
+      if (!b) return;
+      const kind = b.getAttribute('data-mp');
+      if (kind === 'host') mpEnterHost();
+      else if (kind === 'join') mpEnterJoin();
+    });
+
+    // join screen
+    $('#mp-join-code').addEventListener('input', function () {
+      this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    });
+    $('#mp-join-btn').addEventListener('click', () => {
+      const code = $('#mp-join-code').value.trim().toUpperCase();
+      const name = mpCleanName($('#mp-join-name').value);
+      if (code.length < 4 || !name) { toast(I18n.tt('enter_code_name')); return; }
+      if (!netReady()) return;
+      mpStoreName(name);
+      mpStartJoin(code, name);
+    });
+
+    // lobby
+    $('#mp-share-btn').addEventListener('click', mpShareRoom);
+    $('#mp-copy-btn').addEventListener('click', () => { if (mp && mp.code) mpCopy(mp.code, 'code_copied'); });
+    $('#mp-start-btn').addEventListener('click', () => { if (mp && mp.amHost) hostStartGame(); });
+    $('#mp-lobby-leave').addEventListener('click', mpLeave);
+    $('#mp-host-name').addEventListener('input', function () {
+      if (!mp || !mp.amHost) return;
+      const n = mpCleanName(this.value) || I18n.t('host_name_default');
+      mp.myName = n;
+      const self = hostPlayer(mp.myId);
+      if (self) self.name = n;
+      mpStoreName(n);
+      hostSyncPub();
+      hostBroadcast();
+    });
+    $('#mp-sel-category').addEventListener('change', function () {
+      if (!mp || !mp.amHost) return;
+      mp.host.config.category = this.value;
+      hostSyncPub();
+      hostBroadcast();
+    });
+    // multiplayer imposter stepper
+    const impStepper = document.querySelector('[data-stepper="mp-imposters"]');
+    if (impStepper) {
+      impStepper.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-delta]');
+        if (!b || !mp || !mp.amHost) return;
+        const delta = parseInt(b.getAttribute('data-delta'), 10);
+        const players = mp.host.players.filter((p) => p.connected).length;
+        const maxImp = Math.max(1, players - 1);
+        mp.host.config.imposters = Math.min(maxImp, Math.max(1, mp.host.config.imposters + delta));
+        hostSyncPub();
+        hostBroadcast();
+      });
+    }
+
+    // reveal
+    mpWirePeek();
+    $('#mp-ready-btn').addEventListener('click', mpDoReady);
+    $('#mp-force-discuss').addEventListener('click', () => { if (mp && mp.amHost) hostBeginDiscuss(); });
+    $('#mp-reveal-leave').addEventListener('click', mpLeave);
+
+    // discussion
+    $('#mp-open-voting').addEventListener('click', () => { if (mp && mp.amHost) hostOpenVoting(); });
+    $('#mp-round-leave').addEventListener('click', mpLeave);
+    $('#mp-timer-toggle').addEventListener('click', () => {
+      if (!mp || !mp.amHost) return;
+      if (mp.pub.timer.running) mpStopTimer(); else mpStartTimer();
+    });
+    $('#mp-timer-reset').addEventListener('click', () => { if (mp && mp.amHost) mpSetTimerPreset(mp.pub.timer.duration); });
+    $$('[data-mp-timer-set]').forEach((b) => {
+      b.addEventListener('click', () => { if (mp && mp.amHost) mpSetTimerPreset(parseInt(b.getAttribute('data-mp-timer-set'), 10)); });
+    });
+
+    // voting
+    $('#mp-vote-skip').addEventListener('click', () => mpCastVote('skip'));
+    $('#mp-close-voting').addEventListener('click', () => { if (mp && mp.amHost) hostResolveVote(); });
+    $('#mp-vote-leave').addEventListener('click', mpLeave);
+
+    // outcome
+    $('#mp-outcome-leave').addEventListener('click', mpLeave);
+
+    // deep-link: ?join=CODE opens the join screen prefilled
+    try {
+      const code = new URLSearchParams(location.search).get('join');
+      if (code) {
+        mpEnterJoin();
+        $('#mp-join-code').value = code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+        setTimeout(() => { $('#mp-join-name').focus(); }, 60);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   // ================= PWA INSTALL =================
   let deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -1022,6 +2228,8 @@
     clampImposters();
     applyLang(); // renders static i18n, builds selects, renders setup for the current languages
     setTimer(timerDuration);
+    mpBuildCategorySelect(); // populate the multiplayer category <select> (no data-i18n)
+    mpInit();                // wire up the "Host a game" multiplayer mode
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(() => {});

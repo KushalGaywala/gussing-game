@@ -139,8 +139,107 @@
     secondary_label: { gu: 'બીજી ભાષા', en: 'Secondary language' },
     none: { gu: 'કોઈ નહીં', en: 'None' },
 
+    // ---- multiplayer: home entry points ----
+    play_local: { gu: 'રમો', en: 'Play' },
+    play_local_sub: { gu: 'એક ફોન — વારાફરતી', en: 'One phone — pass around' },
+    mp_host: { gu: 'રમત હોસ્ટ કરો', en: 'Host a game' },
+    mp_host_sub: { gu: 'બધા પોતાના ફોનથી', en: 'Everyone on their own phone' },
+    mp_join: { gu: 'રમતમાં જોડાઓ', en: 'Join a game' },
+    mp_join_sub: { gu: 'રૂમ કોડથી જોડાઓ', en: 'Enter a room code' },
+
+    // ---- multiplayer: join ----
+    join_title: { gu: 'રમતમાં જોડાઓ', en: 'Join a game' },
+    room_code: { gu: 'રૂમ કોડ', en: 'Room code' },
+    room_code_ph: { gu: 'કોડ દાખલ કરો', en: 'Enter code' },
+    your_name: { gu: 'તમારું નામ', en: 'Your name' },
+    your_name_ph: { gu: 'તમારું નામ', en: 'Your name' },
+    join_action: { gu: 'જોડાઓ', en: 'Join' },
+    join_hint: { gu: 'હોસ્ટ પાસેથી કોડ મેળવો.', en: 'Ask the host for the room code.' },
+    connecting: { gu: 'જોડાઈ રહ્યું છે…', en: 'Connecting…' },
+    enter_code_name: { gu: 'કોડ અને નામ દાખલ કરો', en: 'Enter a code and your name' },
+
+    // ---- multiplayer: lobby ----
+    lobby_host_title: { gu: 'તમારો રૂમ', en: 'Your room' },
+    lobby_title: { gu: 'રૂમ', en: 'Room' },
+    creating_room: { gu: 'રૂમ બની રહ્યો છે…', en: 'Creating room…' },
+    share_code: { gu: 'આ કોડ મિત્રો સાથે શેર કરો', en: 'Share this code with friends' },
+    scan_to_join: { gu: 'જોડાવા સ્કેન કરો', en: 'Scan to join' },
+    share_room: { gu: 'શેર', en: 'Share' },
+    copy_code: { gu: 'કૉપિ', en: 'Copy' },
+    code_copied: { gu: 'કોડ કૉપિ થયો', en: 'Code copied' },
+    link_copied: { gu: 'લિંક કૉપિ થઈ', en: 'Link copied' },
+    share_text: { gu: 'મારી ઈમ્પોસ્ટર રમતમાં જોડાઓ! કોડ', en: 'Join my Imposter game! Code' },
+    players_joined: { gu: 'ખેલાડીઓ', en: 'Players' },
+    waiting_host: { gu: 'હોસ્ટ રમત શરૂ કરે તેની રાહ જુઓ…', en: 'Waiting for the host to start…' },
+    waiting_players: { gu: 'ખેલાડીઓ જોડાય તેની રાહ જુઓ…', en: 'Waiting for players to join…' },
+    you_label: { gu: 'તમે', en: 'You' },
+    host_label: { gu: 'હોસ્ટ', en: 'Host' },
+    host_name_default: { gu: 'હોસ્ટ', en: 'Host' },
+    need_players_mp: { gu: 'શરૂ કરવા ઓછામાં ઓછા {min} ખેલાડી જોઈએ', en: 'Need at least {min} players to start' },
+
+    // ---- multiplayer: connection status ----
+    host_left: { gu: 'હોસ્ટે રમત છોડી દીધી', en: 'The host left the game' },
+    connection_lost: { gu: 'જોડાણ તૂટી ગયું', en: 'Connection lost' },
+    reconnecting: { gu: 'ફરી જોડાઈ રહ્યું છે…', en: 'Reconnecting…' },
+    reconnected: { gu: 'ફરી જોડાયું', en: 'Reconnected' },
+    left_room: { gu: 'રૂમ છોડ્યો', en: 'Left the room' },
+    online: { gu: 'ઑનલાઇન', en: 'Online' },
+    offline_dot: { gu: 'ઑફલાઇન', en: 'Offline' },
+    kicked_msg: { gu: 'હોસ્ટે તમને દૂર કર્યા', en: 'The host removed you' },
+    game_in_progress: { gu: 'રમત ચાલુ છે — હમણાં જોડાઈ શકાતું નથી', en: 'A game is in progress — cannot join now' },
+    room_full: { gu: 'રૂમ ભરાઈ ગયો છે', en: 'The room is full' },
+    no_room_found: { gu: 'આ કોડનો રૂમ મળ્યો નથી', en: 'No room found for that code' },
+    net_error: { gu: 'નેટવર્ક ભૂલ — ફરી પ્રયાસ કરો', en: 'Network error — please try again' },
+    webrtc_unsupported: { gu: 'આ બ્રાઉઝર મલ્ટિપ્લેયર સપોર્ટ કરતું નથી', en: "This browser doesn't support multiplayer" },
+    leave_room_confirm: { gu: 'રૂમ છોડવો છે?', en: 'Leave this room?' },
+    close_room_confirm: { gu: 'રૂમ બંધ કરવો છે?', en: 'Close this room?' },
+    close_room_message: { gu: 'રૂમ બંધ થશે અને બધા ખેલાડીઓ બહાર નીકળી જશે.', en: 'The room will close and all players will be removed.' },
+    leave_room_message: { gu: 'તમે રમતમાંથી બહાર નીકળી જશો.', en: 'You will leave the game.' },
+    leave_action: { gu: 'છોડો', en: 'Leave' },
+    remove_player_confirm: { gu: 'આ ખેલાડીને દૂર કરવો છે?', en: 'Remove this player?' },
+    remove_action: { gu: 'દૂર કરો', en: 'Remove' },
+
+    // ---- multiplayer: reveal (own card on own device) ----
+    mp_reveal_title: { gu: 'તમારું કાર્ડ', en: 'Your card' },
+    hold_to_see: { gu: 'જોવા માટે દબાવી રાખો', en: 'Press & hold to see' },
+    release_hides_mp: { gu: 'છોડતાં જ છુપાઈ જશે — બાજુવાળા ન જુએ', en: 'Release to hide — keep it from neighbours' },
+    im_ready: { gu: 'હું તૈયાર છું', en: "I'm ready" },
+    youre_ready: { gu: 'તમે તૈયાર છો', en: "You're ready" },
+    ready_word: { gu: 'તૈયાર', en: 'ready' },
+    waiting_others: { gu: 'બીજા ખેલાડીઓની રાહ જુઓ…', en: 'Waiting for others…' },
+    everyone_ready: { gu: 'બધા તૈયાર છે!', en: 'Everyone is ready!' },
+
+    // ---- multiplayer: discussion / host controls ----
+    open_voting: { gu: 'મતદાન શરૂ કરો', en: 'Open voting' },
+    waiting_host_action: { gu: 'હોસ્ટ આગળ વધારે તેની રાહ જુઓ…', en: 'Waiting for the host…' },
+    timer_host_only: { gu: 'ટાઈમર હોસ્ટ ચલાવે છે', en: 'The host controls the timer' },
+
+    // ---- multiplayer: voting (everyone votes; open ballots) ----
+    mp_vote_title: { gu: 'મત આપો', en: 'Vote' },
+    mp_vote_desc: { gu: 'કોને બહાર કાઢવો? બધા પોતાના ફોનથી મત આપો — કોણે કોને મત આપ્યો તે દેખાશે.', en: 'Who to remove? Everyone votes from their own phone — you can see who voted for whom.' },
+    skip_vote: { gu: 'છોડો — કોઈને નહીં', en: 'Skip — no one' },
+    votes_word: { gu: 'મત', en: 'votes' },
+    not_voted_yet: { gu: 'હજી મત નથી આપ્યો', en: 'not voted yet' },
+    voted_skip: { gu: 'છોડ્યું', en: 'skipped' },
+    waiting_votes: { gu: 'બીજા ખેલાડીઓના મતની રાહ…', en: 'Waiting for votes…' },
+    close_voting: { gu: 'મતદાન બંધ કરો ને પરિણામ જુઓ', en: 'Close voting & reveal' },
+    all_voted: { gu: 'બધાએ મત આપ્યો', en: 'Everyone has voted' },
+    voted_count: { gu: 'મત આપ્યા', en: 'voted' },
+    tie_no_removal: { gu: 'મત બરાબરી — કોઈને બહાર કાઢ્યા નહીં', en: 'Tie — no one removed' },
+    no_votes_removal: { gu: 'કોઈ મત નહીં — કોઈને બહાર કાઢ્યા નહીં', en: 'No votes — no one removed' },
+    your_turn_vote: { gu: 'તમારો મત આપો', en: 'Cast your vote' },
+
+    // ---- multiplayer: outcome ----
+    play_again: { gu: 'ફરી રમો', en: 'Play again' },
+    back_to_lobby: { gu: 'લોબીમાં પાછા', en: 'Back to lobby' },
+    round_skipped_mp: { gu: 'રાઉન્ડ છોડ્યો', en: 'Round skipped' },
+
     // ---- how to play (values may contain <b> markup) ----
     how_title: { gu: 'કેવી રીતે રમવું', en: 'How to play' },
+    how_mp: {
+      gu: '<b>ઓનલાઇન (હોસ્ટ કરો કે જોડાઓ):</b> એક જણ રૂમ બનાવે, બીજા કોડ કે QR થી જોડાય. દરેક પોતાના ફોન પર પોતાનું કાર્ડ જુએ, ટાઈમર બધા માટે એકસાથે ચાલે, અને બધા પોતાના ફોનથી મત આપે — કોણે કોને મત આપ્યો તે બધાને દેખાય.',
+      en: '<b>Online (host or join):</b> one person creates a room, others join by code or QR. Everyone sees their own card on their own phone, the timer runs in sync for all, and everyone votes from their device — with who-voted-for-whom visible to all.',
+    },
     how_1: {
       gu: '<b>ગોઠવણ:</b> ખેલાડીઓ અને ઈમ્પોસ્ટરની સંખ્યા પસંદ કરો.',
       en: '<b>Setup:</b> Pick the number of players &amp; imposters.',

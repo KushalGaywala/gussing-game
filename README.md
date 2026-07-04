@@ -1,9 +1,16 @@
 # ઈમ્પોસ્ટર — Gujarati Imposter Game
 
-A pass-the-phone **Imposter** party game (like the famous "undercover / imposter" word game).
+An **Imposter** party game (like the famous "undercover / imposter" word game), playable two ways:
+
+- **Play** — the classic **pass-the-phone** mode on a single device, fully offline.
+- **Host a game** — a new **online multiplayer** mode where a host opens a room and friends
+  **join from their own phones**: everyone sees their own card, shares one synchronised timer,
+  and votes from their device with **who-voted-for-whom visible to all**. It's **peer-to-peer
+  over WebRTC** — there is **no server to deploy or run** (see [Online multiplayer](#online-multiplayer-host-a-game)).
+
 Fully bilingual (Gujarati + English out of the box) with a per-slot language picker — choose
-any registered language as primary and any (or none) as secondary. Runs fully offline as an
-installable **PWA** — no accounts, no server, no network required.
+any registered language as primary and any (or none) as secondary. Installable **PWA**; the
+single-device game runs fully offline.
 
 ## How to play
 
@@ -15,8 +22,36 @@ installable **PWA** — no accounts, no server, no network required.
 6. **રાઉન્ડ / Rounds** — if the game isn't over, a **suggesting round** is followed by another **discussion round**, then remove or skip again. This repeats until someone wins.
 7. **જીત / Win** — **civilians win** once every imposter has been removed; **imposters win** the moment they equal or outnumber the surviving civilians. The result (with round count) is saved to **History**.
 
+## Online multiplayer (Host a game)
+
+The **Host a game** mode lets everyone play from **their own phone** instead of passing one device around.
+
+1. **Host** taps **Host a game** → a room opens with a short **room code** and a **QR code**. Share either (there's a **Share** and **Copy** button, plus a `?join=CODE` deep link).
+2. **Players** tap **Join a game**, enter the code (or scan the QR / open the link) and their name.
+3. The host sets imposters + category and taps **Start**. Now:
+   - **everyone sees their own card** on their own screen (press-and-hold to reveal, so a neighbour can't peek);
+   - the **discussion timer is shared** — the host starts/pauses it and it counts down in sync on every device;
+   - when the host opens voting, **everyone votes from their phone** and the tally is **open** — you can see **who voted for whom**, live;
+   - the player with the most votes is removed and their role is revealed to all (a tie removes no one). Win conditions are the same as the local game.
+4. **Play again** returns the whole group to the lobby to run another round with the same players.
+
+### How it works (protocol) — no server to deploy
+
+- **Transport: WebRTC data channels, peer-to-peer.** Game data flows **directly between phones**; it never passes through a server we run.
+- **Topology: host-authoritative star.** The host device is the single source of truth: it assigns roles, owns the timer, tallies votes and broadcasts a public snapshot to everyone. Each player's **private card is sent only to that player**, so no other device ever learns your role.
+- **Signaling: the free public [PeerJS](https://peerjs.com) cloud broker.** WebRTC needs a brief rendezvous to exchange connection info — that (and only that) uses PeerJS's free hosted broker. **You don't deploy, run, pay for, or configure anything.** Google's public STUN is used for NAT traversal. (The library is vendored locally in `js/vendor/`; no CDN, no build step.)
+- **Reconnection.** A stable per-tab id lets a dropped phone — or a page refresh — rejoin its seat; the host restores the player's card and state.
+
+### Limitations (the honest bits)
+
+- **Best on the same Wi‑Fi.** Peer-to-peer connects most reliably when everyone is on the same network (the common party case). Across restrictive/symmetric NATs a **TURN relay** would be needed, which we intentionally don't run — those (rarer) connections may fail.
+- **The host must stay in the app.** As the authority, if the host leaves, the room closes for everyone. (Backgrounding a phone can also pause its timers.)
+- **Trust model.** Because there's no neutral server, the **host device technically holds every role** in memory. The UI never shows them, but a determined host could inspect them — fine for a friendly party game; a neutral server (which the no-infra requirement rules out) would be needed to prevent it.
+- **Party-sized rooms.** Capped at 12 players (a sane limit for a phone star topology).
+
 ## Features
 
+- **Online multiplayer ("Host a game")** — play from your own phones over **peer-to-peer WebRTC** with **no server to deploy**: room code + QR to join, private per-device cards, a **synchronised timer**, and **open voting** where everyone sees who voted for whom. See **[Online multiplayer](#online-multiplayer-host-a-game)**.
 - **250+ Gujarati words** across 16 categories (animals, food, places, festivals, and more) — Gujarati with English in brackets.
 - **Imposter gets a related word** — the classic "undercover" twist: instead of nothing, each imposter secretly receives a *different* word from the **same category** as the real one (shared across imposters), so they can make a convincing, intelligent bluff.
 - **Manual setup** — any number of players (3–20) and imposters (1 to players−1).
@@ -32,7 +67,9 @@ installable **PWA** — no accounts, no server, no network required.
 
 ## Tech
 
-Vanilla HTML/CSS/JS — no build step, no dependencies.
+Vanilla HTML/CSS/JS — **no build step**. The single-device game has **zero dependencies**; the
+online mode uses two small **vendored** (committed, self-hosted — no CDN) MIT libraries: PeerJS
+(WebRTC) and qrcode-generator (the join QR).
 
 | File | Purpose |
 |------|---------|
@@ -42,7 +79,10 @@ Vanilla HTML/CSS/JS — no build step, no dependencies.
 | `js/db.js` | IndexedDB wrapper (presets + history) |
 | `js/icons.js` | Inline SVG icon set (self-contained, no sprite/`<use>`) |
 | `js/i18n.js` | Language registry + UI string catalog + primary/secondary rendering |
-| `js/app.js` | Router, game logic, hold-to-peek card, timer |
+| `js/net.js` | WebRTC transport for multiplayer — host-authoritative star over PeerJS (signaling only) |
+| `js/vendor/peerjs.min.js` | Vendored [PeerJS](https://peerjs.com) (MIT) — WebRTC peer connections + free signaling broker |
+| `js/vendor/qrcode.js` | Vendored [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT) — lazy-loaded "scan to join" QR |
+| `js/app.js` | Router, local + multiplayer game logic, hold-to-peek card, timers |
 | `manifest.webmanifest` | PWA manifest |
 | `sw.js` | Service worker (offline cache) |
 | `icons/` | App icons — SVG + raster PNG (192/512, incl. maskable) |
