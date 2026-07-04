@@ -7,9 +7,9 @@
   <meta name="description" content="ગુજરાતી ઈમ્પોસ્ટર પાર્ટી ગેમ — Gujarati Imposter party game" />
   <title>ઈમ્પોસ્ટર — Imposter</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon.svg?v=16" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=16" />
-  <link rel="stylesheet" href="css/style.css?v=16" />
+  <link rel="icon" href="icons/icon.svg?v=17" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=17" />
+  <link rel="stylesheet" href="css/style.css?v=17" />
   <!-- apply saved secondary-language visibility before first paint (no flash) -->
   <script>try{var s=localStorage.getItem('imposter-lang-secondary');if(s===null&&localStorage.getItem('imposter-lang-mode')==='normal')s='';if(s==='')document.documentElement.classList.add('no-secondary');}catch(e){}</script>
 </head>
@@ -418,6 +418,11 @@
           </div>
           <input id="mp-join-code" class="input code-input" type="text" inputmode="text"
                  autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="4" placeholder="ABCD" />
+          <div class="or-divider"><span data-i18n="or_label">અથવા</span></div>
+          <button class="btn btn-outline scan-cta" id="mp-scan-btn" type="button">
+            <span class="icon" data-icon="scan"></span>
+            <span data-i18n="scan_qr" data-i18n-sep="space">QR સ્કેન કરો</span>
+          </button>
         </div>
         <div class="panel">
           <div class="panel-head">
@@ -688,14 +693,37 @@
     </div>
   </div>
 
+  <!-- in-app QR scanner (camera) — opened from the Join screen -->
+  <div class="scanner" id="scanner" hidden>
+    <video class="scanner-video" id="scanner-video" playsinline muted autoplay></video>
+    <div class="scanner-overlay-grid" aria-hidden="true">
+      <div class="scanner-reticle">
+        <span class="scan-corner tl"></span><span class="scan-corner tr"></span>
+        <span class="scan-corner bl"></span><span class="scan-corner br"></span>
+        <span class="scan-laser"></span>
+      </div>
+    </div>
+    <header class="scanner-bar">
+      <button class="icon-btn" id="scanner-close" aria-label="Close">
+        <span class="icon" data-icon="x"></span>
+      </button>
+      <div class="bar-title">
+        <h2 data-i18n-pri="scan_title">QR સ્કેન કરો</h2>
+        <span class="en" data-i18n-sec="scan_title">Scan QR</span>
+      </div>
+      <span class="scanner-cam"><span class="icon" data-icon="camera"></span></span>
+    </header>
+    <p class="scanner-hint" data-i18n="scan_hint" data-i18n-sep="br">હોસ્ટનો QR કોડ ફ્રેમમાં રાખો</p>
+  </div>
+
   <div class="toast" id="toast" hidden></div>
 
-  <script src="js/icons.js?v=16"></script>
-  <script src="js/i18n.js?v=16"></script>
-  <script src="js/vocab.js?v=16"></script>
-  <script src="js/db.js?v=16"></script>
-  <script src="js/vendor/peerjs.min.js?v=16"></script>
-  <script src="js/net.js?v=16"></script>
-  <script src="js/app.js?v=16"></script>
+  <script src="js/icons.js?v=17"></script>
+  <script src="js/i18n.js?v=17"></script>
+  <script src="js/vocab.js?v=17"></script>
+  <script src="js/db.js?v=17"></script>
+  <script src="js/vendor/peerjs.min.js?v=17"></script>
+  <script src="js/net.js?v=17"></script>
+  <script src="js/app.js?v=17"></script>
 </body>
 </html>

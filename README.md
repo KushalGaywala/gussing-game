@@ -27,7 +27,7 @@ single-device game runs fully offline.
 The **Host a game** mode lets everyone play from **their own phone** instead of passing one device around.
 
 1. **Host** taps **Host a game** → a room opens with a short **room code** and a **QR code**. Share either (there's a **Share** and **Copy** button, plus a `?join=CODE` deep link).
-2. **Players** tap **Join a game**, enter the code (or scan the QR / open the link) and their name.
+2. **Players** tap **Join a game** and either type the code, tap **Scan QR code** to read the host's QR with their camera **inside the app**, or open the shared link. The in-app scanner uses the native `BarcodeDetector` where available and falls back to a vendored **jsQR** decoder (so it works on iOS Safari / Firefox too); the camera is released as soon as a code is found or the scanner is closed.
 3. The host sets imposters + category and taps **Start**. Now:
    - **everyone sees their own card** on their own screen (press-and-hold to reveal, so a neighbour can't peek);
    - the **discussion timer is shared** — the host starts/pauses it and it counts down in sync on every device;
@@ -68,8 +68,9 @@ The **Host a game** mode lets everyone play from **their own phone** instead of 
 ## Tech
 
 Vanilla HTML/CSS/JS — **no build step**. The single-device game has **zero dependencies**; the
-online mode uses two small **vendored** (committed, self-hosted — no CDN) MIT libraries: PeerJS
-(WebRTC) and qrcode-generator (the join QR).
+online mode uses three small **vendored** (committed, self-hosted — no CDN) libraries, all
+lazy-loaded/precached: PeerJS (WebRTC, MIT), qrcode-generator (the join QR, MIT), and jsQR
+(the in-app QR scanner fallback, Apache-2.0).
 
 | File | Purpose |
 |------|---------|
@@ -81,7 +82,8 @@ online mode uses two small **vendored** (committed, self-hosted — no CDN) MIT 
 | `js/i18n.js` | Language registry + UI string catalog + primary/secondary rendering |
 | `js/net.js` | WebRTC transport for multiplayer — host-authoritative star over PeerJS (signaling only) |
 | `js/vendor/peerjs.min.js` | Vendored [PeerJS](https://peerjs.com) (MIT) — WebRTC peer connections + free signaling broker |
-| `js/vendor/qrcode.js` | Vendored [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT) — lazy-loaded "scan to join" QR |
+| `js/vendor/qrcode.js` | Vendored [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT) — lazy-loaded "scan to join" QR (host) |
+| `js/vendor/jsqr.min.js` | Vendored [jsQR](https://github.com/cozmo/jsQR) (Apache-2.0) — lazy-loaded in-app QR **scanner** fallback (joiner) |
 | `js/app.js` | Router, local + multiplayer game logic, hold-to-peek card, timers |
 | `manifest.webmanifest` | PWA manifest |
 | `sw.js` | Service worker (offline cache) |

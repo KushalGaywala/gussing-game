@@ -2004,7 +2004,7 @@
     }
     if (window.qrcode) { draw(); return; }
     const s = document.createElement('script');
-    s.src = 'js/vendor/qrcode.js?v=16';
+    s.src = 'js/vendor/qrcode.js?v=17';
     s.onload = draw;
     s.onerror = () => { box.hidden = true; };
     document.head.appendChild(s);
@@ -2040,6 +2040,126 @@
       document.body.removeChild(ta);
       done();
     } catch (e) { /* ignore */ }
+  }
+
+  // ---------------- in-app QR scanner (Join) ----------------
+  // Opens the camera and reads the host's QR to fill the room code. Uses the
+  // native BarcodeDetector where available (Android Chrome) and falls back to
+  // the vendored jsQR decoder (iOS Safari, Firefox). The camera stream is always
+  // released on close / success / when the tab is hidden.
+  let mpScan = null;
+
+  function mpOpenScanner() {
+    if (mpScan) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast(I18n.tt('camera_unsupported'));
+      return;
+    }
+    const video = $('#scanner-video');
+    $('#scanner').hidden = false;
+    mpScan = { stream: null, video, raf: null, timer: null, detector: null, canvas: null, ctx: null, useNative: false, done: false };
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+      .then((stream) => {
+        if (!mpScan) { stream.getTracks().forEach((t) => t.stop()); return; }
+        mpScan.stream = stream;
+        video.srcObject = stream;
+        const p = video.play();
+        if (p && p.catch) p.catch(() => {});
+        mpStartDecode();
+      })
+      .catch((err) => {
+        const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+        toast(I18n.tt(denied ? 'camera_denied' : 'camera_error'));
+        mpCloseScanner();
+      });
+  }
+
+  function mpStartDecode() {
+    if ('BarcodeDetector' in window) {
+      try {
+        mpScan.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        mpScan.useNative = true;
+        mpScanLoop();
+        return;
+      } catch (e) { /* fall through to jsQR */ }
+    }
+    mpScan.canvas = document.createElement('canvas');
+    mpScan.ctx = mpScan.canvas.getContext('2d', { willReadFrequently: true });
+    if (window.jsQR) { mpScanLoop(); return; }
+    const s = document.createElement('script');
+    s.src = 'js/vendor/jsqr.min.js?v=17';
+    s.onload = () => { if (mpScan) mpScanLoop(); };
+    s.onerror = () => { toast(I18n.tt('camera_unsupported')); mpCloseScanner(); };
+    document.head.appendChild(s);
+  }
+
+  function mpScanLoop() {
+    if (!mpScan || mpScan.done) return;
+    const video = mpScan.video;
+    if (video && video.readyState >= 2 && video.videoWidth > 0) {
+      try {
+        if (mpScan.useNative) {
+          mpScan.detector.detect(video)
+            .then((codes) => { if (codes && codes.length) mpScanHit(codes[0].rawValue); })
+            .catch(() => {});
+        } else if (window.jsQR) {
+          const w = video.videoWidth, h = video.videoHeight;
+          const scale = Math.min(1, 640 / Math.max(w, h)); // downscale big frames for speed
+          const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+          mpScan.canvas.width = cw; mpScan.canvas.height = ch;
+          mpScan.ctx.drawImage(video, 0, 0, cw, ch);
+          const img = mpScan.ctx.getImageData(0, 0, cw, ch);
+          const res = window.jsQR(img.data, cw, ch, { inversionAttempts: 'dontInvert' });
+          if (res && res.data) mpScanHit(res.data);
+        }
+      } catch (e) { /* skip a bad frame */ }
+    }
+    if (mpScan && !mpScan.done) {
+      mpScan.timer = setTimeout(() => { if (mpScan && !mpScan.done) mpScan.raf = requestAnimationFrame(mpScanLoop); }, 140);
+    }
+  }
+
+  function mpScanHit(rawValue) {
+    if (!mpScan || mpScan.done) return;
+    const code = mpCodeFromScan(rawValue);
+    if (code.length < 4) return; // not one of our room QRs — keep scanning
+    mpScan.done = true;
+    if (navigator.vibrate) navigator.vibrate(30);
+    mpCloseScanner();
+    $('#mp-join-code').value = code;
+    toast(I18n.tt('scan_found'));
+    const name = mpCleanName($('#mp-join-name').value);
+    if (name) {
+      if (!netReady()) return;
+      mpStoreName(name);
+      mpStartJoin(code, name); // name already set — connect straight away
+    } else {
+      $('#mp-join-name').focus();
+    }
+  }
+
+  // Our QR encodes the join URL (…?join=CODE); accept that, or a bare 4-char code.
+  function mpCodeFromScan(value) {
+    const v = String(value || '').trim();
+    try {
+      const j = new URL(v).searchParams.get('join');
+      return j ? j.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) : '';
+    } catch (e) { /* not a URL */ }
+    const bare = v.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return bare.length === 4 ? bare : '';
+  }
+
+  function mpCloseScanner() {
+    const overlay = $('#scanner');
+    if (!mpScan) { if (overlay) overlay.hidden = true; return; }
+    mpScan.done = true;
+    if (mpScan.timer) clearTimeout(mpScan.timer);
+    if (mpScan.raf) cancelAnimationFrame(mpScan.raf);
+    if (mpScan.stream) { try { mpScan.stream.getTracks().forEach((t) => t.stop()); } catch (e) { /* ignore */ } }
+    const video = $('#scanner-video');
+    try { video.pause(); video.srcObject = null; } catch (e) { /* ignore */ }
+    if (overlay) overlay.hidden = true;
+    mpScan = null;
   }
 
   // ---------------- language refresh ----------------
@@ -2120,6 +2240,12 @@
       mpStoreName(name);
       mpStartJoin(code, name);
     });
+
+    // in-app QR scanner
+    $('#mp-scan-btn').addEventListener('click', mpOpenScanner);
+    $('#scanner-close').addEventListener('click', mpCloseScanner);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#scanner').hidden) mpCloseScanner(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden && mpScan) mpCloseScanner(); });
 
     // lobby
     $('#mp-share-btn').addEventListener('click', mpShareRoom);
