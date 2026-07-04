@@ -1078,7 +1078,15 @@
       onReady(code) {
         mp.code = code;
         mp.myId = Net.myId;
-        mp.host.players.push({ id: mp.myId, name: mp.myName, isHost: true, connected: true, alive: true, ready: false });
+        // onReady re-fires whenever the host's broker link reconnects, so add the
+        // host player exactly ONCE — otherwise a brief network blip would create a
+        // second "host" in the room.
+        const self = hostPlayer(mp.myId);
+        if (self) {
+          self.isHost = true; self.connected = true; self.name = mp.myName;
+        } else {
+          mp.host.players.push({ id: mp.myId, name: mp.myName, isHost: true, connected: true, alive: true, ready: false });
+        }
         mpSetStatus('ok');
         hostSyncPub();
         renderMP();
@@ -1198,6 +1206,10 @@
   }
 
   function hostSyncPub() {
+    // Belt-and-suspenders: never let a duplicate player id survive into the
+    // public roster (e.g. a reconnect race), and keep exactly one host.
+    const seen = {};
+    mp.host.players = mp.host.players.filter((p) => (seen[p.id] ? false : (seen[p.id] = true)));
     mp.pub.players = mp.host.players.map((p) => ({
       id: p.id, name: p.name, isHost: p.isHost, connected: p.connected, alive: p.alive, ready: p.ready,
     }));
