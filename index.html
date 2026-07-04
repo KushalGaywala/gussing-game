@@ -7,9 +7,9 @@
   <meta name="description" content="ગુજરાતી ઈમ્પોસ્ટર પાર્ટી ગેમ — Gujarati Imposter party game" />
   <title>ઈમ્પોસ્ટર — Imposter</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon.svg?v=15" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=15" />
-  <link rel="stylesheet" href="css/style.css?v=15" />
+  <link rel="icon" href="icons/icon.svg?v=16" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=16" />
+  <link rel="stylesheet" href="css/style.css?v=16" />
   <!-- apply saved secondary-language visibility before first paint (no flash) -->
   <script>try{var s=localStorage.getItem('imposter-lang-secondary');if(s===null&&localStorage.getItem('imposter-lang-mode')==='normal')s='';if(s==='')document.documentElement.classList.add('no-secondary');}catch(e){}</script>
 </head>
@@ -35,9 +35,29 @@
         <p class="subtitle" data-i18n="subtitle" data-i18n-sep="dot">પાર્ટી ગેમ</p>
       </div>
       <div class="home-actions">
-        <button class="btn btn-primary btn-lg" data-nav="setup">
-          <span class="icon" data-icon="play"></span>
-          <span class="btn-label" data-i18n="new_game">નવી રમત</span>
+        <button class="choice choice-primary" data-nav="setup">
+          <span class="choice-ic"><span class="icon" data-icon="play"></span></span>
+          <span class="choice-tx">
+            <span class="choice-title" data-i18n-pri="play_local">રમો</span>
+            <span class="choice-sub" data-i18n="play_local_sub" data-i18n-sep="space">એક ફોન — વારાફરતી</span>
+          </span>
+          <span class="choice-go"><span class="icon icon-s" data-icon="arrow-right"></span></span>
+        </button>
+        <button class="choice" data-mp="host">
+          <span class="choice-ic"><span class="icon" data-icon="wifi"></span></span>
+          <span class="choice-tx">
+            <span class="choice-title" data-i18n-pri="mp_host">રમત હોસ્ટ કરો</span>
+            <span class="choice-sub" data-i18n="mp_host_sub" data-i18n-sep="space">બધા પોતાના ફોનથી</span>
+          </span>
+          <span class="choice-go"><span class="icon icon-s" data-icon="arrow-right"></span></span>
+        </button>
+        <button class="choice" data-mp="join">
+          <span class="choice-ic"><span class="icon" data-icon="log-in"></span></span>
+          <span class="choice-tx">
+            <span class="choice-title" data-i18n-pri="mp_join">રમતમાં જોડાઓ</span>
+            <span class="choice-sub" data-i18n="mp_join_sub" data-i18n-sep="space">રૂમ કોડથી જોડાઓ</span>
+          </span>
+          <span class="choice-go"><span class="icon icon-s" data-icon="arrow-right"></span></span>
         </button>
         <div class="btn-row">
           <button class="btn btn-ghost" data-nav="history">
@@ -372,6 +392,265 @@
           <span class="step-num">7</span>
           <p data-i18n="how_7" data-i18n-sep="br"><b>જીત:</b> બધા ઈમ્પોસ્ટર બહાર નીકળે તો <b>ખેલાડીઓ જીતે</b>. ઈમ્પોસ્ટર બાકીના ખેલાડીઓ જેટલા કે વધુ થઈ જાય તો <b>ઈમ્પોસ્ટર જીતે</b>.<br/><span class="en">Civilians win when all imposters are out. Imposters win once they equal or outnumber the civilians.</span></p>
         </div>
+        <div class="step step-mp">
+          <span class="step-num step-num-ic"><span class="icon icon-s" data-icon="wifi"></span></span>
+          <p data-i18n="how_mp" data-i18n-sep="br"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MP: JOIN A GAME ============ -->
+    <section class="screen" id="screen-mp-join">
+      <header class="bar">
+        <button class="icon-btn" data-nav="home" aria-label="Back">
+          <span class="icon" data-icon="back"></span>
+        </button>
+        <div class="bar-title">
+          <h2 data-i18n-pri="join_title">રમતમાં જોડાઓ</h2>
+          <span class="en" data-i18n-sec="join_title">Join a game</span>
+        </div>
+      </header>
+      <div class="play-wrap">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="icon icon-s" data-icon="scan"></span>
+            <label class="panel-title" for="mp-join-code" data-i18n="room_code">રૂમ કોડ</label>
+          </div>
+          <input id="mp-join-code" class="input code-input" type="text" inputmode="text"
+                 autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="4" placeholder="ABCD" />
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="icon icon-s" data-icon="edit"></span>
+            <label class="panel-title" for="mp-join-name" data-i18n="your_name">તમારું નામ</label>
+          </div>
+          <input id="mp-join-name" class="input" type="text" autocomplete="off" maxlength="24" />
+        </div>
+        <p class="hint" id="mp-join-hint" data-i18n="join_hint" data-i18n-sep="br">હોસ્ટ પાસેથી કોડ મેળવો.</p>
+      </div>
+      <div class="sticky-footer">
+        <button class="btn btn-primary btn-lg" id="mp-join-btn">
+          <span class="icon" data-icon="log-in"></span>
+          <span class="btn-label" id="mp-join-btn-label" data-i18n="join_action">જોડાઓ</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ MP: LOBBY (host + client) ============ -->
+    <section class="screen" id="screen-mp-lobby">
+      <header class="bar">
+        <button class="icon-btn" id="mp-lobby-leave" aria-label="Leave">
+          <span class="icon" data-icon="x"></span>
+        </button>
+        <div class="bar-title">
+          <h2 id="mp-lobby-title" data-i18n-pri="lobby_host_title">તમારો રૂમ</h2>
+          <span class="en" id="mp-lobby-sub" data-i18n-sec="lobby_host_title">Your room</span>
+        </div>
+        <span class="conn-chip" id="mp-lobby-conn" hidden></span>
+      </header>
+      <div class="play-wrap">
+        <!-- room code + share (host); joined banner (client) -->
+        <div class="room-card">
+          <span class="room-label" id="mp-room-label" data-i18n="share_code">આ કોડ મિત્રો સાથે શેર કરો</span>
+          <div class="room-code" id="mp-room-code">····</div>
+          <div class="room-actions" id="mp-room-actions">
+            <button class="btn btn-outline btn-sm" id="mp-share-btn">
+              <span class="icon icon-s" data-icon="share"></span><span data-i18n="share_room">શેર</span>
+            </button>
+            <button class="btn btn-outline btn-sm" id="mp-copy-btn">
+              <span class="icon icon-s" data-icon="copy"></span><span data-i18n="copy_code">કૉપિ</span>
+            </button>
+          </div>
+          <div class="qr-box" id="mp-qr" hidden>
+            <div class="qr-canvas" id="mp-qr-canvas" aria-hidden="true"></div>
+            <span class="qr-cap" data-i18n="scan_to_join">જોડાવા સ્કેન કરો</span>
+          </div>
+        </div>
+
+        <!-- host name (host only) -->
+        <div class="panel host-only" id="mp-hostname-panel" hidden>
+          <div class="panel-head">
+            <span class="icon icon-s" data-icon="edit"></span>
+            <label class="panel-title" for="mp-host-name" data-i18n="your_name">તમારું નામ</label>
+          </div>
+          <input id="mp-host-name" class="input" type="text" maxlength="24" />
+        </div>
+
+        <!-- game config (host editable; client read-only summary) -->
+        <div class="panel host-only" id="mp-cfg-panel" hidden>
+          <div class="panel-head">
+            <span class="icon icon-s" data-icon="mask"></span>
+            <span class="panel-title" data-i18n="imposters">ઈમ્પોસ્ટર</span>
+          </div>
+          <div class="stepper" data-stepper="mp-imposters">
+            <button class="step-btn" data-delta="-1" aria-label="Fewer imposters"><span class="icon" data-icon="minus"></span></button>
+            <span class="step-value" id="mp-val-imposters">1</span>
+            <button class="step-btn" data-delta="1" aria-label="More imposters"><span class="icon" data-icon="plus"></span></button>
+          </div>
+          <p class="hint" id="mp-imp-hint"></p>
+          <div class="panel-head" style="margin-top:16px">
+            <span class="icon icon-s" data-icon="tag"></span>
+            <label class="panel-title" for="mp-sel-category" data-i18n="category">શ્રેણી</label>
+          </div>
+          <select id="mp-sel-category" class="select"></select>
+        </div>
+
+        <!-- players roster -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="icon icon-s" data-icon="users"></span>
+            <span class="panel-title"><span data-i18n="players_joined">ખેલાડીઓ</span> · <span id="mp-player-count">1</span></span>
+          </div>
+          <div class="roster" id="mp-roster"></div>
+        </div>
+
+        <p class="wait-note" id="mp-lobby-wait" hidden></p>
+      </div>
+      <div class="sticky-footer host-only" id="mp-lobby-footer" hidden>
+        <button class="btn btn-primary btn-lg" id="mp-start-btn">
+          <span class="icon" data-icon="play"></span>
+          <span class="btn-label" data-i18n="start_game">રમત શરૂ કરો</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ MP: REVEAL (own card on own device) ============ -->
+    <section class="screen" id="screen-mp-reveal">
+      <header class="bar">
+        <button class="icon-btn" id="mp-reveal-leave" aria-label="Leave">
+          <span class="icon" data-icon="x"></span>
+        </button>
+        <div class="bar-title">
+          <h2 data-i18n-pri="mp_reveal_title">તમારું કાર્ડ</h2>
+          <span class="en" data-i18n-sec="mp_reveal_title">Your card</span>
+        </div>
+        <span class="conn-chip" id="mp-reveal-conn" hidden></span>
+      </header>
+      <div class="reveal-wrap">
+        <div class="pass-banner">
+          <p class="pass-instruction" data-i18n="hold_to_see" data-i18n-sep="space">જોવા માટે દબાવી રાખો</p>
+          <h2 class="pass-player" id="mp-reveal-name">તમે</h2>
+        </div>
+        <div class="peek-stack" id="mp-peek-stack">
+          <div class="peek-under"><div id="mp-peek-content"></div></div>
+          <div class="peek-cover" id="mp-peek-cover">
+            <div class="cover-mark"><span class="icon icon-l" data-icon="eye"></span></div>
+            <p class="cover-title" data-i18n-pri="hold_to_see">જોવા માટે દબાવી રાખો</p>
+            <p class="cover-sub en" data-i18n-sec="hold_to_see">Press &amp; hold to see</p>
+          </div>
+        </div>
+        <p class="peek-hint" data-i18n="release_hides_mp" data-i18n-sep="space">છોડતાં જ છુપાઈ જશે</p>
+        <p class="ready-count" id="mp-ready-count"></p>
+        <button class="btn btn-primary btn-lg" id="mp-ready-btn">
+          <span class="icon" data-icon="check"></span>
+          <span class="btn-label" id="mp-ready-label" data-i18n="im_ready">હું તૈયાર છું</span>
+        </button>
+        <button class="btn btn-outline btn-lg host-only" id="mp-force-discuss" hidden>
+          <span class="icon" data-icon="arrow-right"></span>
+          <span class="btn-label" data-i18n="start_discussion">ચર્ચા શરૂ કરો</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ MP: DISCUSSION ROUND ============ -->
+    <section class="screen" id="screen-mp-round">
+      <header class="bar">
+        <button class="icon-btn" id="mp-round-leave" aria-label="Leave">
+          <span class="icon" data-icon="x"></span>
+        </button>
+        <div class="bar-title">
+          <h2 data-i18n-pri="round_discuss_title">ચર્ચા રાઉન્ડ</h2>
+          <span class="en" data-i18n-sec="round_discuss_title">Discussion round</span>
+        </div>
+        <span class="turn-chip" id="mp-round-chip">રાઉન્ડ 1</span>
+      </header>
+      <div class="play-wrap">
+        <p class="play-desc" data-i18n="discuss_desc" data-i18n-sep="br"></p>
+        <p class="round-starter" id="mp-round-starter" hidden></p>
+
+        <div class="panel alive-panel">
+          <div class="panel-head">
+            <span class="icon icon-s" data-icon="users"></span>
+            <span class="panel-title" data-i18n="players_in_play">ખેલાડીઓ</span>
+          </div>
+          <div class="alive-chips" id="mp-alive-chips"></div>
+        </div>
+
+        <div class="panel timer-panel">
+          <div class="panel-head">
+            <span class="icon icon-s" data-icon="timer"></span>
+            <span class="panel-title" data-i18n="timer">ટાઈમર</span>
+          </div>
+          <div class="timer-display" id="mp-timer-display">03:00</div>
+          <div class="timer-bar"><div class="timer-bar-fill" id="mp-timer-bar-fill"></div></div>
+          <div class="timer-controls host-only" id="mp-timer-controls" hidden>
+            <button class="btn btn-outline btn-sm" id="mp-timer-toggle">
+              <span class="icon icon-s" data-icon="play"></span>
+              <span data-i18n="timer_start">શરૂ</span>
+            </button>
+            <button class="btn btn-outline btn-sm" id="mp-timer-reset" aria-label="Reset timer">
+              <span class="icon icon-s" data-icon="rotate"></span>
+            </button>
+            <button class="chip" data-mp-timer-set="120">2:00</button>
+            <button class="chip" data-mp-timer-set="180">3:00</button>
+            <button class="chip" data-mp-timer-set="300">5:00</button>
+          </div>
+          <p class="hint client-only" id="mp-timer-note" data-i18n="timer_host_only" data-i18n-sep="space" hidden>ટાઈમર હોસ્ટ ચલાવે છે</p>
+        </div>
+
+        <div class="round-actions">
+          <button class="btn btn-primary btn-lg host-only" id="mp-open-voting" hidden>
+            <span class="icon" data-icon="vote"></span>
+            <span class="btn-label" data-i18n="open_voting">મતદાન શરૂ કરો</span>
+          </button>
+          <p class="wait-note client-only" id="mp-round-wait" data-i18n="waiting_host_action" hidden>હોસ્ટ આગળ વધારે તેની રાહ જુઓ…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MP: VOTE (everyone votes; open ballots) ============ -->
+    <section class="screen" id="screen-mp-vote">
+      <header class="bar">
+        <button class="icon-btn" id="mp-vote-leave" aria-label="Leave">
+          <span class="icon" data-icon="x"></span>
+        </button>
+        <div class="bar-title">
+          <h2 data-i18n-pri="mp_vote_title">મત આપો</h2>
+          <span class="en" data-i18n-sec="mp_vote_title">Vote</span>
+        </div>
+        <span class="turn-chip" id="mp-vote-count"></span>
+      </header>
+      <div class="play-wrap">
+        <p class="play-desc" data-i18n="mp_vote_desc" data-i18n-sep="br"></p>
+        <div class="vote-list" id="mp-vote-list"></div>
+        <button class="vote-skip" id="mp-vote-skip">
+          <span class="icon icon-s" data-icon="arrow-right"></span>
+          <span data-i18n="skip_vote" data-i18n-sep="space">છોડો — કોઈને નહીં</span>
+        </button>
+      </div>
+      <div class="sticky-footer host-only" id="mp-vote-footer" hidden>
+        <button class="btn btn-primary btn-lg" id="mp-close-voting">
+          <span class="icon" data-icon="check"></span>
+          <span class="btn-label" data-i18n="close_voting">મતદાન બંધ કરો</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ MP: OUTCOME (elimination / game over) ============ -->
+    <section class="screen" id="screen-mp-outcome">
+      <header class="bar">
+        <button class="icon-btn" id="mp-outcome-leave" aria-label="Leave">
+          <span class="icon" data-icon="x"></span>
+        </button>
+        <div class="bar-title">
+          <h2 id="mp-outcome-title">પરિણામ</h2>
+          <span class="en" id="mp-outcome-title-en">Result</span>
+        </div>
+      </header>
+      <div class="play-wrap">
+        <div id="mp-outcome-body"></div>
+        <div class="result-block" id="mp-outcome-actions"></div>
+        <p class="wait-note client-only" id="mp-outcome-wait" data-i18n="waiting_host_action" hidden></p>
       </div>
     </section>
 
@@ -411,10 +690,12 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="js/icons.js?v=15"></script>
-  <script src="js/i18n.js?v=15"></script>
-  <script src="js/vocab.js?v=15"></script>
-  <script src="js/db.js?v=15"></script>
-  <script src="js/app.js?v=15"></script>
+  <script src="js/icons.js?v=16"></script>
+  <script src="js/i18n.js?v=16"></script>
+  <script src="js/vocab.js?v=16"></script>
+  <script src="js/db.js?v=16"></script>
+  <script src="js/vendor/peerjs.min.js?v=16"></script>
+  <script src="js/net.js?v=16"></script>
+  <script src="js/app.js?v=16"></script>
 </body>
 </html>

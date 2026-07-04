@@ -952,3 +952,190 @@ html.no-secondary [data-i18n-sec] { display: none; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* =====================================================================
+   Multiplayer — "Host a game" mode (lobby, roster, live voting, sync UI)
+   ===================================================================== */
+
+/* ---- home entry choices (Play / Host / Join) ---- */
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.choice:active { transform: scale(0.985); }
+.choice-primary {
+  background: linear-gradient(135deg, #ff2d84 0%, #ff3d54 100%);
+  border-color: transparent;
+  box-shadow: 0 8px 24px rgba(255, 45, 110, 0.42);
+}
+.choice-ic {
+  width: 46px; height: 46px; border-radius: 14px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); color: var(--accent-2); border: 1px solid var(--border);
+}
+.choice-primary .choice-ic { background: rgba(255, 255, 255, 0.16); color: #fff; border-color: transparent; }
+.choice-tx { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.choice-title { font-weight: 800; font-size: 1.08rem; }
+.choice-sub { font-size: 0.8rem; color: var(--text-3); }
+.choice-sub .en { color: inherit; }
+.choice-primary .choice-title { color: #fff; }
+.choice-primary .choice-sub { color: rgba(255, 255, 255, 0.82); }
+.choice-go { color: var(--text-3); flex: none; display: inline-flex; }
+.choice-primary .choice-go { color: rgba(255, 255, 255, 0.8); }
+
+/* ---- connection status chip (header) ---- */
+.conn-chip {
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.conn-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.conn-chip.ok { color: var(--success); background: var(--success-soft); border: 1px solid rgba(47, 221, 158, 0.3); }
+.conn-chip.warn { color: #ffc85a; background: rgba(255, 200, 90, 0.12); border: 1px solid rgba(255, 200, 90, 0.3); }
+.conn-chip.warn::before { animation: pulse-dot 1s ease-in-out infinite; }
+.conn-chip.bad { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(255, 59, 82, 0.3); }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ---- room code card + share + QR ---- */
+.room-card {
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-l);
+  padding: 18px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.room-label { color: var(--text-2); font-size: 0.85rem; }
+.room-code {
+  font-size: clamp(2.2rem, 13vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-soft);
+  border: 1px dashed var(--border-strong);
+  border-radius: 16px;
+  padding: 8px 14px 8px 24px; /* extra left pad balances the letter-spacing */
+}
+.room-actions { display: flex; gap: 10px; }
+.qr-box { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 2px; }
+.qr-canvas { background: #fff; padding: 10px; border-radius: 12px; line-height: 0; }
+.qr-canvas svg, .qr-canvas img { display: block; width: 190px; height: 190px; image-rendering: pixelated; }
+.qr-cap { font-size: 0.78rem; color: var(--text-3); }
+
+/* ---- code entry (join) ---- */
+.code-input {
+  text-align: center;
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  padding-left: 0.42em; /* balance the tracking so text sits centred */
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- roster (lobby + status) ---- */
+.roster { display: flex; flex-direction: column; gap: 8px; }
+.roster-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 14px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.roster-item.is-off { opacity: 0.5; }
+.r-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 0.9rem; color: #fff; text-transform: uppercase;
+  background: linear-gradient(135deg, #ff2d84, #ff3d54);
+}
+.r-name { flex: 1; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-tags { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.r-badge {
+  font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 800;
+  padding: 3px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;
+}
+.r-badge.you { color: var(--accent-2); background: var(--accent-soft); border: 1px solid rgba(255, 45, 132, 0.4); }
+.r-badge.host { color: #ffd479; background: rgba(255, 200, 90, 0.12); border: 1px solid rgba(255, 200, 90, 0.35); }
+.r-badge.ready { color: var(--success); background: var(--success-soft); border: 1px solid rgba(47, 221, 158, 0.35); }
+.r-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+.r-dot.off { background: var(--text-3); box-shadow: none; }
+.r-kick {
+  border: none; background: transparent; color: var(--text-3); cursor: pointer;
+  padding: 4px; border-radius: 8px; display: inline-flex; flex: none;
+}
+.r-kick:active { color: var(--danger); background: var(--danger-soft); }
+
+/* ---- generic wait / ready notes ---- */
+.wait-note {
+  text-align: center; color: var(--text-3); font-size: 0.9rem; margin: 8px 0 0;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.ready-count { text-align: center; color: var(--text-2); font-weight: 700; margin: 2px 0; min-height: 1.2em; }
+
+/* ---- live voting (open ballots — who voted for whom) ---- */
+.cand {
+  width: 100%; text-align: left; font-family: inherit; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 13px 15px; cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+}
+.cand:active { transform: scale(0.99); }
+.cand.mine { border-color: var(--accent); background: var(--accent-soft); }
+.cand.locked { cursor: default; }
+.cand.locked:active { transform: none; }
+.cand-top { display: flex; align-items: center; gap: 10px; }
+.cand-name {
+  font-weight: 700; font-size: 1.05rem; flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.cand-you {
+  font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 800;
+  color: var(--accent-2); background: var(--accent-soft);
+  border: 1px solid rgba(255, 45, 132, 0.4); padding: 2px 7px; border-radius: 999px; flex: none;
+}
+.cand-count {
+  margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: var(--text-2); flex: none;
+}
+.cand-count b { color: var(--text); font-size: 1.15rem; }
+.cand-bar { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; margin-top: 10px; }
+.cand-bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 999px; transition: width 0.35s ease; }
+.cand-voters { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.voter-chip {
+  font-size: 0.72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border);
+}
+.voter-chip.mark { color: var(--accent-2); border-color: rgba(255, 45, 132, 0.4); background: var(--accent-soft); }
+.vote-skip {
+  margin: 4px auto 0; display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px; border-radius: 999px; border: 1px dashed var(--border-strong);
+  background: transparent; color: var(--text-2); font-family: inherit; font-weight: 700;
+  font-size: 0.92rem; cursor: pointer;
+}
+.vote-skip.mine { border-style: solid; border-color: var(--accent); color: var(--accent-2); background: var(--accent-soft); }
+
+/* ---- how-to multiplayer step ---- */
+.step-num-ic { display: inline-flex; align-items: center; justify-content: center; }
+.step-mp .step-num { background: var(--accent-soft); color: var(--accent-2); border: 1px solid rgba(255, 45, 132, 0.35); }
