@@ -1098,7 +1098,7 @@
     // Stay on the Join screen showing a "connecting" state — we only move to the
     // room once the host has actually accepted us (first state received).
     mpSetJoinBusy(true);
-    mp._joinTimer = setTimeout(() => { if (mp && !mp.joined) mpJoinFailed('join_timeout'); }, 20000);
+    mp._joinTimer = setTimeout(() => { if (mp && !mp.joined) mpJoinTimedOut(); }, 20000);
     Net.join(code, {
       onOpen() {
         mp.myId = Net.myId;
@@ -1141,6 +1141,14 @@
     showScreen('mp-join');
     mpSetJoinBusy(false);
     if (msgKey) toast(I18n.tt(msgKey));
+  }
+
+  // On timeout, report WHY based on how far the transport got: never reached the
+  // matchmaking server vs. reached it but couldn't open a direct link to the host
+  // (typically Wi-Fi AP/client isolation — the TURN relay should normally cover it).
+  function mpJoinTimedOut() {
+    const st = (window.Net && Net.stage) || '';
+    mpJoinFailed(st === 'broker' ? 'join_no_server' : 'join_no_host');
   }
 
   // ---------------- HOST: authority ----------------
@@ -2043,7 +2051,7 @@
     }
     if (window.qrcode) { draw(); return; }
     const s = document.createElement('script');
-    s.src = 'js/vendor/qrcode.js?v=17';
+    s.src = 'js/vendor/qrcode.js?v=19';
     s.onload = draw;
     s.onerror = () => { box.hidden = true; };
     document.head.appendChild(s);
@@ -2126,7 +2134,7 @@
     mpScan.ctx = mpScan.canvas.getContext('2d', { willReadFrequently: true });
     if (window.jsQR) { mpScanLoop(); return; }
     const s = document.createElement('script');
-    s.src = 'js/vendor/jsqr.min.js?v=17';
+    s.src = 'js/vendor/jsqr.min.js?v=19';
     s.onload = () => { if (mpScan) mpScanLoop(); };
     s.onerror = () => { toast(I18n.tt('camera_unsupported')); mpCloseScanner(); };
     document.head.appendChild(s);

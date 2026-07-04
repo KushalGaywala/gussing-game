@@ -7,9 +7,9 @@
   <meta name="description" content="ગુજરાતી ઈમ્પોસ્ટર પાર્ટી ગેમ — Gujarati Imposter party game" />
   <title>ઈમ્પોસ્ટર — Imposter</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon.svg?v=17" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=17" />
-  <link rel="stylesheet" href="css/style.css?v=17" />
+  <link rel="icon" href="icons/icon.svg?v=19" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=19" />
+  <link rel="stylesheet" href="css/style.css?v=19" />
   <!-- apply saved secondary-language visibility before first paint (no flash) -->
   <script>try{var s=localStorage.getItem('imposter-lang-secondary');if(s===null&&localStorage.getItem('imposter-lang-mode')==='normal')s='';if(s==='')document.documentElement.classList.add('no-secondary');}catch(e){}</script>
 </head>
@@ -432,6 +432,10 @@
           <input id="mp-join-name" class="input" type="text" autocomplete="off" maxlength="24" />
         </div>
         <p class="hint" id="mp-join-hint" data-i18n="join_hint" data-i18n-sep="br">હોસ્ટ પાસેથી કોડ મેળવો.</p>
+        <div class="conn-tip">
+          <span class="icon icon-s" data-icon="wifi"></span>
+          <p><b data-i18n-pri="tip_label">ટિપ</b>: <span data-i18n="hotspot_tip" data-i18n-sep="br">એક જ Wi‑Fi પર છો છતાં જોડાણ નથી થતું? એક ફોનનું હૉટસ્પૉટ ચાલુ કરો.</span></p>
+        </div>
       </div>
       <div class="sticky-footer">
         <button class="btn btn-primary btn-lg" id="mp-join-btn">
@@ -507,6 +511,11 @@
             <span class="panel-title"><span data-i18n="players_joined">ખેલાડીઓ</span> · <span id="mp-player-count">1</span></span>
           </div>
           <div class="roster" id="mp-roster"></div>
+        </div>
+
+        <div class="conn-tip">
+          <span class="icon icon-s" data-icon="wifi"></span>
+          <p><b data-i18n-pri="tip_label">ટિપ</b>: <span data-i18n="hotspot_tip" data-i18n-sep="br">એક જ Wi‑Fi પર છો છતાં જોડાણ નથી થતું? એક ફોનનું હૉટસ્પૉટ ચાલુ કરો.</span></p>
         </div>
 
         <p class="wait-note" id="mp-lobby-wait" hidden></p>
@@ -718,12 +727,12 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="js/icons.js?v=17"></script>
-  <script src="js/i18n.js?v=17"></script>
-  <script src="js/vocab.js?v=17"></script>
-  <script src="js/db.js?v=17"></script>
-  <script src="js/vendor/peerjs.min.js?v=17"></script>
-  <script src="js/net.js?v=17"></script>
-  <script src="js/app.js?v=17"></script>
+  <script src="js/icons.js?v=19"></script>
+  <script src="js/i18n.js?v=19"></script>
+  <script src="js/vocab.js?v=19"></script>
+  <script src="js/db.js?v=19"></script>
+  <script src="js/vendor/peerjs.min.js?v=19"></script>
+  <script src="js/net.js?v=19"></script>
+  <script src="js/app.js?v=19"></script>
 </body>
 </html>

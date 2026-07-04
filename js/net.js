@@ -42,10 +42,21 @@
   var TIMEOUT_MS = 14000;    // ...and drops one that's been silent this long
   var MAX_RECONNECT = 6;     // client reconnect attempts before giving up
 
-  // Public STUN only. (TURN would need infra/credentials we deliberately avoid.)
-  var ICE = [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-  ];
+  // ICE servers for NAT traversal. Public STUN gives each phone its public
+  // address for a DIRECT connection — which is enough across different networks,
+  // but NOT when a Wi-Fi enables "AP/client isolation" (or a symmetric NAT) that
+  // blocks phone-to-phone traffic on the same network. Crossing that needs a TURN
+  // relay, and there's no reliable *free, no-signup* TURN to bundle (the public
+  // ones are dead/abused). Two ways through it: use a phone hotspot (hotspots
+  // don't isolate clients — see the in-app tip), or supply your own relay by
+  // setting `window.MP_ICE_SERVERS` to a full iceServers array (e.g. free TURN
+  // credentials from metered.ca — you run no server, just get a key).
+  function iceServers() {
+    if (window.MP_ICE_SERVERS && window.MP_ICE_SERVERS.length) return window.MP_ICE_SERVERS;
+    return [
+      { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    ];
+  }
 
   var cryptoObj = window.crypto || window.msCrypto || null;
   function randCode() {
@@ -73,7 +84,7 @@
 
   function makePeer(id) {
     // PeerJS ships with the free cloud broker preconfigured; we only override ICE.
-    return new window.Peer(id, { debug: 1, config: { iceServers: ICE } });
+    return new window.Peer(id, { debug: 1, config: { iceServers: iceServers() } });
   }
 
   function normErr(err) {
@@ -87,6 +98,7 @@
   var roomCode = null;
   var myId = null;
   var manualLeave = false;
+  var stage = 'idle';      // idle | broker | ready | channel | online — connection diagnostics
 
   // host-only
   var conns = {};          // remoteId -> { conn, lastSeen }
@@ -103,6 +115,9 @@
     if (typeof fn === 'function') fn.apply(null, Array.prototype.slice.call(arguments, 1));
   }
 
+  // Track how far the connection got, so a failure can say WHY (broker vs P2P).
+  function setStage(s) { stage = s; api.stage = s; }
+
   function safeSend(c, msg) {
     try { if (c && c.open) c.send(msg); } catch (e) { /* channel closing */ }
   }
@@ -113,6 +128,7 @@
     peer = null; conn = null; conns = {}; hostId = null;
     roomCode = null; myId = null; role = null;
     reconnectTries = 0; idRetries = 0;
+    setStage('idle');
   }
 
   // ================= HOST =================
@@ -121,6 +137,7 @@
     role = 'host';
     handlers = cbs || {};
     manualLeave = false;
+    setStage('broker');
     tryHost(0);
     syncPublics();
   }
@@ -132,6 +149,7 @@
 
     peer.on('open', function (id) {
       myId = id;
+      setStage('ready');
       startHeartbeat();
       syncPublics();
       emit('ready', roomCode);
@@ -224,6 +242,7 @@
     idRetries = 0;
     roomCode = String(code || '').trim().toUpperCase();
     hostId = NS + roomCode;
+    setStage('broker');
     syncPublics();
 
     // A stable per-tab peer id lets a refresh or a dropped channel rejoin the
@@ -243,6 +262,7 @@
     // channel to the host — on first join and on every recovery.
     peer.on('open', function (pid) {
       myId = pid;
+      setStage('ready');
       try { sessionStorage.setItem('mp-peer-id', pid); } catch (e) { /* ignore */ }
       syncPublics();
       openConn();
@@ -282,10 +302,12 @@
     if (conn && conn.open) return;                 // already connected
     if (conn) { try { conn.close(); } catch (e) { /* ignore */ } }
     conn = peer.connect(hostId, { serialization: 'json', reliable: true });
+    setStage('channel');
     var opened = false;
     conn.on('open', function () {
       opened = true;
       reconnectTries = 0;
+      setStage('online');
       emit('open');
     });
     conn.on('data', function (data) {
@@ -337,7 +359,7 @@
     host: host, join: join,
     broadcast: broadcast, send: send, kick: kick, close: close,
     sendHost: sendHost, leave: leave,
-    roomCode: null, myId: null, isHost: false,
+    roomCode: null, myId: null, isHost: false, stage: 'idle',
   };
   window.Net = api;
 })();

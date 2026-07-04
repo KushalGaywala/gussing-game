@@ -1153,6 +1153,18 @@ html.no-secondary [data-i18n-sec] { display: none; }
 .btn.is-busy .btn-label { animation: busy-pulse 1.1s ease-in-out infinite; }
 @keyframes busy-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
 
+/* "Same Wi-Fi won't connect? use a hotspot" info tip (Join + lobby). */
+.conn-tip {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 12px 2px 0; padding: 11px 13px;
+  border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-2); text-align: left;
+}
+.conn-tip > .icon { color: var(--accent-2); flex: none; margin-top: 2px; }
+.conn-tip p { margin: 0; font-size: 0.82rem; line-height: 1.45; }
+.conn-tip b { color: var(--text); font-weight: 700; }
+.conn-tip .en { color: var(--text-3); }
+
 .scanner { position: fixed; inset: 0; z-index: 100; background: #000; display: flex; flex-direction: column; }
 .scanner[hidden] { display: none; }
 .scanner-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
