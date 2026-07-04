@@ -25,6 +25,63 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 2200);
   }
 
+  // ---------- custom confirm dialog ----------
+  // A promise-based, on-brand replacement for window.confirm(): a centered modal
+  // card matching the app's native-mobile look. Resolves true when the user
+  // confirms, and false when they cancel, tap the backdrop, or press Escape.
+  // opts: { titleKey, messageKey?, confirmKey, cancelKey='cancel', icon?, tone? }
+  const dialogEl = $('#dialog');
+  let dialogResolve = null;
+
+  function closeDialog(result) {
+    if (!dialogResolve) return;
+    const done = dialogResolve;
+    dialogResolve = null;
+    dialogEl.hidden = true;
+    document.removeEventListener('keydown', onDialogKey, true);
+    done(result);
+  }
+
+  function onDialogKey(e) {
+    if (!dialogResolve) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeDialog(false); return; }
+    if (e.key === 'Tab') {
+      // simple focus trap: keep Tab within the dialog's two buttons
+      const first = $('#dialog-confirm');
+      const last = $('#dialog-cancel');
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  function confirmDialog(opts) {
+    const o = opts || {};
+    const danger = o.tone === 'danger';
+    if (dialogResolve) closeDialog(false); // one dialog at a time
+    return new Promise((resolve) => {
+      dialogResolve = resolve;
+      dialogEl.classList.toggle('danger', danger);
+      $('#dialog-icon').innerHTML = Icons.svg(o.icon || (danger ? 'trash' : 'help'), 'icon-l');
+      $('#dialog-title').innerHTML = biBr(o.titleKey);
+      $('#dialog-message').innerHTML = o.messageKey ? biBr(o.messageKey) : '';
+
+      const confirmBtn = $('#dialog-confirm');
+      confirmBtn.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
+      confirmBtn.innerHTML = `<span class="btn-label">${biSpan(o.confirmKey)}</span>`;
+      $('#dialog-cancel').innerHTML = `<span class="btn-label">${biSpan(o.cancelKey || 'cancel')}</span>`;
+
+      dialogEl.hidden = false;
+      document.addEventListener('keydown', onDialogKey, true);
+      if (navigator.vibrate) navigator.vibrate(10);
+      // focus the safe (cancel) action so a stray Enter never confirms
+      requestAnimationFrame(() => $('#dialog-cancel').focus());
+    });
+  }
+
+  $('#dialog-confirm').addEventListener('click', () => closeDialog(true));
+  $('#dialog-cancel').addEventListener('click', () => closeDialog(false));
+  dialogEl.addEventListener('click', (e) => { if (e.target === dialogEl) closeDialog(false); });
+
   // ---------- randomness ----------
   // Prefer the platform CSPRNG (crypto.getRandomValues) over Math.random(),
   // whose short sequences can feel patterned. randInt returns an unbiased
@@ -164,11 +221,15 @@
     }
     const quit = e.target.closest('[data-quit]');
     if (quit) {
-      if (!game || confirm(I18n.tt('quit_confirm'))) {
-        stopTimer();
-        game = null;
-        showScreen('home');
-      }
+      const leave = () => { stopTimer(); game = null; showScreen('home'); };
+      if (!game) { leave(); return; }
+      confirmDialog({
+        titleKey: 'quit_confirm',
+        messageKey: 'quit_message',
+        confirmKey: 'quit_action',
+        icon: 'x',
+        tone: 'danger',
+      }).then((ok) => { if (ok) leave(); });
     }
   });
 
@@ -908,7 +969,14 @@
   }
 
   $('#btn-clear-history').addEventListener('click', async () => {
-    if (!confirm(I18n.tt('clear_history_confirm'))) return;
+    const ok = await confirmDialog({
+      titleKey: 'clear_history_confirm',
+      messageKey: 'clear_history_message',
+      confirmKey: 'clear_history_action',
+      icon: 'trash',
+      tone: 'danger',
+    });
+    if (!ok) return;
     await DB.clearHistory();
     renderHistory();
     toast(I18n.tt('history_cleared'));

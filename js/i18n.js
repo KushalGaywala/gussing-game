@@ -121,6 +121,8 @@
     history_title: { gu: 'ઇતિહાસ', en: 'Game history' },
     no_games: { gu: 'હજી કોઈ રમત નથી.', en: 'No games yet.' },
     clear_history_confirm: { gu: 'બધો ઇતિહાસ કાઢી નાખવો છે?', en: 'Clear all history?' },
+    clear_history_message: { gu: 'સાચવેલી બધી રમતો કાયમ માટે કાઢી નાખવામાં આવશે.', en: 'All saved games will be permanently deleted.' },
+    clear_history_action: { gu: 'કાઢી નાખો', en: 'Delete all' },
     history_cleared: { gu: 'ઇતિહાસ સાફ થયો', en: 'History cleared' },
     players_count: { gu: 'ખેલાડી', en: 'players' },
     imposters_count: { gu: 'ઈમ્પોસ્ટર', en: 'imposters' },
@@ -129,6 +131,9 @@
 
     // ---- misc ----
     quit_confirm: { gu: 'રમત છોડવી છે?', en: 'Quit this game?' },
+    quit_message: { gu: 'તમારી ચાલુ રમત ખોવાઈ જશે.', en: 'Your current game will be lost.' },
+    quit_action: { gu: 'છોડો', en: 'Quit' },
+    cancel: { gu: 'રદ કરો', en: 'Cancel' },
     language_title: { gu: 'ભાષા', en: 'Language' },
     primary_label: { gu: 'મુખ્ય ભાષા', en: 'Primary language' },
     secondary_label: { gu: 'બીજી ભાષા', en: 'Secondary language' },
