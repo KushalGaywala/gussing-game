@@ -596,6 +596,10 @@
     pickDiscussionStarter();
     showScreen('round');
     renderRound();
+    // The discussion opens right after the last player's card — start the clock
+    // automatically. It then runs continuously and is never reset between rounds.
+    setTimer(timerDuration);
+    startTimer();
   }
 
   // Nominate one living player to open the discussion, so nobody has to decide
@@ -669,8 +673,8 @@
 
     renderAlive($('#alive-chips'));
 
-    stopTimer();
-    setTimer(timerDuration);
+    // The timer is a single continuous discussion clock: it is not reset or
+    // stopped here, so it keeps its running state across rounds.
 
     $('#btn-to-discuss').hidden = !suggest;
     $('#btn-to-vote').hidden = suggest;
@@ -679,7 +683,11 @@
 
   function nextRound() {
     game.round += 1;
-    game.phase = 'suggest';
+    // Skip the separate suggesting screen — every round returns straight to the
+    // discussion screen with the "vote someone out" button. The timer carries
+    // over and keeps running.
+    game.phase = 'discuss';
+    pickDiscussionStarter();
     showScreen('round');
     renderRound();
   }
@@ -695,14 +703,12 @@
   // discussion -> selection (the group picks one player to remove)
   $('#btn-to-vote').addEventListener('click', () => {
     if (!game) return;
-    stopTimer();
     startSelection();
   });
 
   // discussion -> skip round (no ejection, no win check)
   $('#btn-skip-round').addEventListener('click', () => {
     if (!game) return;
-    stopTimer();
     toast(I18n.tt('round_skipped'));
     nextRound();
   });

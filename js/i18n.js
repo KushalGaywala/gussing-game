@@ -162,8 +162,8 @@
       en: '<b>Remove or skip:</b> Together, pick one player to remove — or <b>skip</b> the round. The removed player’s role is revealed.',
     },
     how_6: {
-      gu: '<b>આગળના રાઉન્ડ:</b> જો રમત ચાલુ રહે તો સૂચન રાઉન્ડ પછી ફરી ચર્ચા રાઉન્ડ આવે — મતદાન સુધી.',
-      en: '<b>Next rounds:</b> If the game continues, a suggesting round is followed by another discussion round — then vote again.',
+      gu: '<b>આગળના રાઉન્ડ:</b> જો રમત ચાલુ રહે તો ફરી એ જ ચર્ચા સ્ક્રીન આવે — ટાઈમર ચાલુ જ રહે — મતદાન સુધી.',
+      en: '<b>Next rounds:</b> If the game continues, you return to the same discussion screen — the timer keeps running — then vote again.',
     },
     how_7: {
       gu: '<b>જીત:</b> બધા ઈમ્પોસ્ટર બહાર નીકળે તો <b>ખેલાડીઓ જીતે</b>. ઈમ્પોસ્ટર બાકીના ખેલાડીઓ જેટલા કે વધુ થઈ જાય તો <b>ઈમ્પોસ્ટર જીતે</b>.',
