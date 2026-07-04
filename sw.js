@@ -7,7 +7,7 @@
  * (?v=) and served no-cache by nginx, so a deploy can't leave a client running
  * new HTML against a stale cached script.
  */
-const VERSION = '16';
+const VERSION = '17';
 const CACHE = 'imposter-v' + VERSION;
 const ASSETS = [
   './',
@@ -21,8 +21,9 @@ const ASSETS = [
   `./js/vendor/peerjs.min.js?v=${VERSION}`,
   `./js/net.js?v=${VERSION}`,
   `./js/app.js?v=${VERSION}`,
-  // Lazy-loaded (only when hosting/joining), but precached so the QR works offline.
+  // Lazy-loaded (only when hosting/joining), but precached so QR generate + scan work offline.
   `./js/vendor/qrcode.js?v=${VERSION}`,
+  `./js/vendor/jsqr.min.js?v=${VERSION}`,
   './icons/icon.svg',
   './icons/icon-maskable.svg',
   './icons/icon-192.png',

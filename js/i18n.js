@@ -156,6 +156,14 @@
     join_action: { gu: 'જોડાઓ', en: 'Join' },
     join_hint: { gu: 'હોસ્ટ પાસેથી કોડ મેળવો.', en: 'Ask the host for the room code.' },
     connecting: { gu: 'જોડાઈ રહ્યું છે…', en: 'Connecting…' },
+    or_label: { gu: 'અથવા', en: 'or' },
+    scan_qr: { gu: 'QR સ્કેન કરો', en: 'Scan QR code' },
+    scan_title: { gu: 'QR સ્કેન કરો', en: 'Scan QR' },
+    scan_hint: { gu: 'હોસ્ટનો QR કોડ ફ્રેમમાં રાખો', en: "Point at the host's QR code" },
+    camera_denied: { gu: 'કૅમેરાની પરવાનગી ના મળી', en: 'Camera permission denied' },
+    camera_error: { gu: 'કૅમેરા શરૂ ન થઈ શક્યો', en: "Couldn't start the camera" },
+    camera_unsupported: { gu: 'આ ડિવાઇસ સ્કૅન સપોર્ટ કરતું નથી — કોડ ટાઈપ કરો', en: "Scanning isn't supported here — type the code" },
+    scan_found: { gu: 'કોડ મળ્યો', en: 'Code found' },
     enter_code_name: { gu: 'કોડ અને નામ દાખલ કરો', en: 'Enter a code and your name' },
 
     // ---- multiplayer: lobby ----
