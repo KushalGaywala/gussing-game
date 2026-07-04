@@ -369,14 +369,16 @@
   });
 
   // ================= START GAME =================
-  // The imposter's bluffing aid: a DIFFERENT word from the SAME category as the
-  // secret, so it's genuinely related. Picked once per game and shared by every
-  // imposter, keeping their clues consistent with one another. Falls back to any
-  // other word if the category has a single entry, and to null (the classic
-  // blind-bluff card) only when the whole vocabulary is a single word.
+  // The imposter's bluffing aid: a word from a DIFFERENT category than the
+  // secret (an inter-category pair), so the decoy no longer betrays the real
+  // category — making the imposter work harder to blend in. Picked once per game
+  // and shared by every imposter, keeping their clues consistent with one
+  // another. Falls back to any other word if no cross-category word exists, and
+  // to null (the classic blind-bluff card) only when the whole vocabulary is a
+  // single word.
   function pickDecoy(word) {
-    const sameCat = VOCAB.filter((w) => w.cat === word.cat && w !== word);
-    const pool = sameCat.length ? sameCat : VOCAB.filter((w) => w !== word);
+    const crossCat = VOCAB.filter((w) => w.cat !== word.cat);
+    const pool = crossCat.length ? crossCat : VOCAB.filter((w) => w !== word);
     return pool.length ? pool[randInt(pool.length)] : null;
   }
 
@@ -439,12 +441,11 @@
     }
   }
 
-  // The visible word block (category chip + word + optional secondary line),
-  // shared by the civilian's secret word and the imposter's related hint word.
+  // The visible word block (word + optional secondary line), shared by the
+  // civilian's secret word and the imposter's decoy word. The category is
+  // deliberately NOT shown here — no category hint on the card.
   function wordBlock(w) {
-    const c = CATEGORIES[w.cat];
     return `
-      <span class="word-cat">${c ? I18n.of(c) + I18n.secSpan(' · ' + I18n.ofs(c)) : ''}</span>
       <p class="word-gu">${I18n.of(w)}</p>
       ${I18n.secondary ? `<p class="word-en">(${I18n.ofs(w)})</p>` : ''}`;
   }
