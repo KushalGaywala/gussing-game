@@ -1055,6 +1055,7 @@
   }
   function mpEnterJoin() {
     showScreen('mp-join');
+    mpSetJoinBusy(false); // reset in case a previous attempt left the form disabled
     const nameEl = $('#mp-join-name');
     if (!nameEl.value) nameEl.value = mpStoredName();
     setTimeout(() => { $('#mp-join-code').focus(); }, 60);
@@ -1090,13 +1091,14 @@
 
   function mpStartJoin(code, name) {
     mp = {
-      amHost: false, code: code, status: 'connecting', myId: null, myName: name,
-      pub: mpEmptyPub(), myCard: null, _qrDone: false, _ph: null,
+      amHost: false, code: code, status: 'connecting', joined: false, myId: null, myName: name,
+      pub: mpEmptyPub(), myCard: null, _qrDone: false, _ph: null, _joinTimer: null,
     };
     mpQrUrl = null;
-    showScreen('mp-lobby');
-    mpApplyRoleVis();
-    mpRenderConnecting();
+    // Stay on the Join screen showing a "connecting" state — we only move to the
+    // room once the host has actually accepted us (first state received).
+    mpSetJoinBusy(true);
+    mp._joinTimer = setTimeout(() => { if (mp && !mp.joined) mpJoinFailed('join_timeout'); }, 20000);
     Net.join(code, {
       onOpen() {
         mp.myId = Net.myId;
@@ -1108,6 +1110,37 @@
       onLost() { mpSetStatus('lost'); mpHandleLost(); },
       onError: mpOnNetError,
     });
+  }
+
+  // The Join button's connecting/disabled state (we linger on the Join screen).
+  function mpSetJoinBusy(busy) {
+    const btn = $('#mp-join-btn');
+    const label = $('#mp-join-btn-label');
+    if (!btn) return;
+    btn.disabled = busy;
+    btn.classList.toggle('is-busy', busy);
+    $('#mp-join-code').disabled = busy;
+    $('#mp-join-name').disabled = busy;
+    $('#mp-scan-btn').disabled = busy;
+    if (busy) label.textContent = I18n.t('connecting');
+    else label.innerHTML = biSpan('join_action');
+  }
+
+  // We're in the room: stop the connecting state; renderMP (called next) shows
+  // the lobby (or, on a mid-game reconnect, whatever screen the phase maps to).
+  function mpEnterRoom() {
+    mp.joined = true;
+    if (mp._joinTimer) { clearTimeout(mp._joinTimer); mp._joinTimer = null; }
+    mpSetJoinBusy(false);
+    mpApplyRoleVis();
+  }
+
+  // Joining failed before we made it into the room — stay on the Join screen.
+  function mpJoinFailed(msgKey) {
+    mpTeardown();
+    showScreen('mp-join');
+    mpSetJoinBusy(false);
+    if (msgKey) toast(I18n.tt(msgKey));
   }
 
   // ---------------- HOST: authority ----------------
@@ -1411,9 +1444,10 @@
         mp.pub = msg.pub;
         if (mp.pub.phase === 'lobby') mp.myCard = null;
         mpApplyRemoteTimer(mp.pub.timer);
+        if (!mp.joined) mpEnterRoom(); // first state from the host = we're in the room
         renderMP();
         break;
-      case 'card': mp.myCard = msg.card; renderMP(); break;
+      case 'card': mp.myCard = msg.card; if (mp.joined) renderMP(); break;
       case 'timer': mpApplyRemoteTimer(msg.timer); break;
       case 'reject': mpHandleReject(msg.reason); break;
       case 'kicked': mpHandleKicked(); break;
@@ -1422,8 +1456,7 @@
   }
 
   function mpHandleReject(reason) {
-    toast(I18n.tt(reason === 'full' ? 'room_full' : 'game_in_progress'));
-    mpBackToJoin();
+    mpJoinFailed(reason === 'full' ? 'room_full' : 'game_in_progress');
   }
   function mpHandleKicked() { toast(I18n.tt('kicked_msg')); mpTeardown(); showScreen('home'); }
   function mpHandleHostLeft() { toast(I18n.tt('host_left')); mpTeardown(); showScreen('home'); }
@@ -1436,8 +1469,12 @@
   function mpOnNetError(e) {
     if (!mp) return;
     const t = e && e.type;
+    if (!mp.amHost && !mp.joined) {
+      // any error before we've made it into the room keeps us on the Join screen
+      mpJoinFailed(t === 'no-room' ? 'no_room_found' : 'net_error');
+      return;
+    }
     if (t === 'no-room') { toast(I18n.tt('no_room_found')); mpBackToJoin(); return; }
-    if (t === 'unavailable-id') { toast(I18n.tt('net_error')); return; }
     toast(I18n.tt('net_error'));
     if (mp.status === 'connecting') mpBackToJoin();
   }
@@ -1446,6 +1483,7 @@
     const wasHost = mp && mp.amHost;
     mpTeardown();
     showScreen(wasHost ? 'home' : 'mp-join');
+    if (!wasHost) mpSetJoinBusy(false);
   }
 
   // ---------------- shared: status + teardown ----------------
@@ -1463,6 +1501,7 @@
   function mpTeardown() {
     mpClearTimerInterval();
     if (mp) {
+      if (mp._joinTimer) { clearTimeout(mp._joinTimer); mp._joinTimer = null; }
       try { if (mp.amHost) Net.close(); else Net.leave(); } catch (e) { /* ignore */ }
     }
     mp = null;

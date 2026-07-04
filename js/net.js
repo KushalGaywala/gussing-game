@@ -96,6 +96,7 @@
   var hostId = null;
   var conn = null;         // our single connection to the host
   var reconnectTries = 0;
+  var idRetries = 0;       // fresh-id retries when our peer id is already taken
 
   function emit(name) {
     var fn = handlers['on' + name.charAt(0).toUpperCase() + name.slice(1)];
@@ -111,7 +112,7 @@
     if (peer) { try { peer.destroy(); } catch (e) { /* ignore */ } }
     peer = null; conn = null; conns = {}; hostId = null;
     roomCode = null; myId = null; role = null;
-    reconnectTries = 0;
+    reconnectTries = 0; idRetries = 0;
   }
 
   // ================= HOST =================
@@ -154,8 +155,13 @@
   }
 
   function wireHostConn(c) {
+    // Register immediately so a reply sent while handling the client's very first
+    // message never finds a missing entry. (A 'data' event implies the channel is
+    // open, so safeSend's c.open check still gates actual sends.)
+    conns[c.peer] = { conn: c, lastSeen: Date.now() };
     c.on('open', function () {
-      conns[c.peer] = { conn: c, lastSeen: Date.now() };
+      var rec = conns[c.peer];
+      if (rec) rec.lastSeen = Date.now(); else conns[c.peer] = { conn: c, lastSeen: Date.now() };
     });
     c.on('data', function (data) {
       var rec = conns[c.peer];
@@ -215,6 +221,7 @@
     handlers = cbs || {};
     manualLeave = false;
     reconnectTries = 0;
+    idRetries = 0;
     roomCode = String(code || '').trim().toUpperCase();
     hostId = NS + roomCode;
     syncPublics();
@@ -223,14 +230,20 @@
     // same seat (the host recognises the returning id).
     var stored = null;
     try { stored = sessionStorage.getItem('mp-peer-id'); } catch (e) { /* ignore */ }
-    peer = makePeer(stored || (NS + 'p-' + randToken()));
+    makeClientPeer(stored || (NS + 'p-' + randToken()));
+  }
+
+  // Create the client's broker peer and wire its lifecycle. Extracted so we can
+  // transparently recreate it with a fresh id if the chosen id is already taken.
+  function makeClientPeer(id) {
+    peer = makePeer(id);
 
     // 'open' fires on the initial broker connection AND again after every
     // peer.reconnect(), so it's the single place that (re)establishes our data
     // channel to the host — on first join and on every recovery.
-    peer.on('open', function (id) {
-      myId = id;
-      try { sessionStorage.setItem('mp-peer-id', id); } catch (e) { /* ignore */ }
+    peer.on('open', function (pid) {
+      myId = pid;
+      try { sessionStorage.setItem('mp-peer-id', pid); } catch (e) { /* ignore */ }
       syncPublics();
       openConn();
     });
@@ -242,9 +255,17 @@
     peer.on('error', function (err) {
       var e = normErr(err);
       if (e.type === 'unavailable-id') {
-        // stored id still held by a stale peer — drop it and start clean
+        // Our id is already registered on the broker — usually a stale peer left
+        // over from a previous join in this same tab. Drop it and retry with a
+        // brand-new id so joining can't get stuck in "connecting".
         try { sessionStorage.removeItem('mp-peer-id'); } catch (x) { /* ignore */ }
-        emit('error', e);
+        if (!manualLeave && idRetries < 3) {
+          idRetries++;
+          try { peer.destroy(); } catch (z) { /* ignore */ }
+          makeClientPeer(NS + 'p-' + randToken());
+        } else {
+          emit('error', e);
+        }
         return;
       }
       if (e.type === 'peer-unavailable') {

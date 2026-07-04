@@ -156,6 +156,7 @@
     join_action: { gu: 'જોડાઓ', en: 'Join' },
     join_hint: { gu: 'હોસ્ટ પાસેથી કોડ મેળવો.', en: 'Ask the host for the room code.' },
     connecting: { gu: 'જોડાઈ રહ્યું છે…', en: 'Connecting…' },
+    join_timeout: { gu: 'રૂમ સુધી પહોંચી શકાયું નહીં — કોડ તપાસો અને હોસ્ટ ઑનલાઇન છે કે નહીં તે જુઓ', en: "Couldn't reach the room — check the code and that the host is online" },
     or_label: { gu: 'અથવા', en: 'or' },
     scan_qr: { gu: 'QR સ્કેન કરો', en: 'Scan QR code' },
     scan_title: { gu: 'QR સ્કેન કરો', en: 'Scan QR' },

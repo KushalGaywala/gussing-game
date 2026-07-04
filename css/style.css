@@ -1148,6 +1148,11 @@ html.no-secondary [data-i18n-sec] { display: none; }
 .or-divider::before, .or-divider::after { content: ""; height: 1px; flex: 1; background: var(--border); }
 .scan-cta { width: 100%; }
 
+/* Join button while connecting: keep it readable (override the dim :disabled) and pulse. */
+.btn.is-busy { opacity: 0.85 !important; }
+.btn.is-busy .btn-label { animation: busy-pulse 1.1s ease-in-out infinite; }
+@keyframes busy-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
 .scanner { position: fixed; inset: 0; z-index: 100; background: #000; display: flex; flex-direction: column; }
 .scanner[hidden] { display: none; }
 .scanner-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
