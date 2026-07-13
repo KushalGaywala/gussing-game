@@ -428,7 +428,7 @@ html.sec-nonlatin .en { text-transform: none; letter-spacing: normal; }
   background: var(--bg-soft);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.98rem;
+  font-size: 1rem; /* 16px: below this, iOS Safari auto-zooms on input focus */
 }
 .select {
   appearance: none;

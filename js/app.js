@@ -799,6 +799,11 @@
     game.eliminations.push({ name: game.names[idx], imposter: wasImp, round: game.round });
     if (navigator.vibrate) navigator.vibrate(wasImp ? [30, 60, 30] : 30);
     const winner = checkWinner();
+    // Removal committed — the round's discussion is over, so stop the clock. Without
+    // this it keeps ticking under the outcome/win screen and fires a spurious "time
+    // up" toast + vibration; nextRound() restarts a fresh clock if the game
+    // continues, or it stays stopped on game over. (Mirrors MP's mpStopTimer().)
+    stopTimer();
     showScreen('outcome');
     renderOutcome(idx, wasImp, winner);
   }
@@ -1442,11 +1447,12 @@
     mp.pub.votes = {};
     mp.pub.voteClosed = false;
     hostPickStarter();
+    // Each round gets a fresh shared clock (mirrors hostBeginDiscuss): reset to full
+    // BEFORE broadcasting so clients never render the previous round's spent timer,
+    // then start it after the state goes out.
+    mpResetTimer(mp.pub.timer.duration);
     hostSyncPub();
     hostBroadcast();
-    // Each round gets a fresh shared clock (mirrors hostBeginDiscuss), so round 2+
-    // isn't left on a spent timer.
-    mpResetTimer(mp.pub.timer.duration);
     mpStartTimer();
   }
 
