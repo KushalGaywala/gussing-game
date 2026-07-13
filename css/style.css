@@ -9,7 +9,7 @@
   --border-strong: #4a3355;
   --text: #f6eef4;
   --text-2: #c3b0c2;
-  --text-3: #857089;
+  --text-3: #988aa0;
   --accent: #ff2d84;
   --accent-2: #ff79b3;
   --accent-soft: rgba(255, 45, 132, 0.16);
@@ -55,6 +55,12 @@ html, body {
 html.no-secondary .en,
 html.no-secondary .word-en,
 html.no-secondary [data-i18n-sec] { display: none; }
+
+/* Non-Latin secondary language (e.g. Gujarati as the secondary): undo the
+   Latin-only uppercase + letter-spacing that the .en span gets in headers,
+   labels and buttons, which would otherwise detach Gujarati matras/conjuncts.
+   This single override (specificity 0,2,1) beats every `.x .en` rule (0,2,0). */
+html.sec-nonlatin .en { text-transform: none; letter-spacing: normal; }
 
 :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 

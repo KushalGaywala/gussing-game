@@ -2,7 +2,7 @@
 <html lang="gu">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0c0910" />
   <meta name="description" content="ગુજરાતી ઈમ્પોસ્ટર પાર્ટી ગેમ — Gujarati Imposter party game" />
   <title>ઈમ્પોસ્ટર — Imposter</title>
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=19" />
   <link rel="stylesheet" href="css/style.css?v=19" />
   <!-- apply saved secondary-language visibility before first paint (no flash) -->
-  <script>try{var s=localStorage.getItem('imposter-lang-secondary');if(s===null&&localStorage.getItem('imposter-lang-mode')==='normal')s='';if(s==='')document.documentElement.classList.add('no-secondary');}catch(e){}</script>
+  <script>try{var P=localStorage.getItem('imposter-lang-primary')||'gu';var S=localStorage.getItem('imposter-lang-secondary');if(S===null&&localStorage.getItem('imposter-lang-mode')==='normal')S='';document.documentElement.lang=P;if(S==='')document.documentElement.classList.add('no-secondary');else if(S!==null&&S!=='en')document.documentElement.classList.add('sec-nonlatin');}catch(e){}</script>
 </head>
 <body>
 
@@ -276,10 +276,6 @@
         </div>
 
         <div class="round-actions">
-          <button class="btn btn-primary btn-lg" id="btn-to-discuss" hidden>
-            <span class="icon" data-icon="arrow-right"></span>
-            <span class="btn-label" data-i18n="start_discussion">ચર્ચા શરૂ કરો</span>
-          </button>
           <button class="btn btn-primary btn-lg" id="btn-to-vote" hidden>
             <span class="icon" data-icon="mask"></span>
             <span class="btn-label" data-i18n="vote_someone_out">કોને કાઢવો પસંદ કરો</span>
@@ -725,7 +721,7 @@
     <p class="scanner-hint" data-i18n="scan_hint" data-i18n-sep="br">હોસ્ટનો QR કોડ ફ્રેમમાં રાખો</p>
   </div>
 
-  <div class="toast" id="toast" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="js/icons.js?v=19"></script>
   <script src="js/i18n.js?v=19"></script>

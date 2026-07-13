@@ -12,7 +12,13 @@
   function showScreen(name) {
     $$('.screen').forEach((s) => s.classList.remove('active'));
     const el = document.getElementById('screen-' + name);
-    if (el) el.classList.add('active');
+    if (el) {
+      el.classList.add('active');
+      // Move focus to the new screen's heading so keyboard / screen-reader users
+      // get an anchor and an announcement on every navigation.
+      const h = el.querySelector('h1, h2, [data-screen-focus]');
+      if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+    }
     window.scrollTo(0, 0);
   }
 
@@ -236,8 +242,13 @@
   });
 
   // ================= SETUP SCREEN =================
+  // Imposters are always a strict minority, so no game is decided before it starts
+  // (a majority or parity of imposters would win no matter who is removed). Cap at
+  // floor((players-1)/2): 3-4 players -> 1, 5-6 -> 2, 7-8 -> 3, and so on.
+  function maxImposters(n) { return Math.max(1, Math.floor((n - 1) / 2)); }
+
   function clampImposters() {
-    const maxImp = Math.max(1, config.players - 1);
+    const maxImp = maxImposters(config.players);
     if (config.imposters > maxImp) config.imposters = maxImp;
     if (config.imposters < 1) config.imposters = 1;
   }
@@ -245,7 +256,7 @@
   function renderSetup() {
     $('#val-players').textContent = config.players;
     $('#val-imposters').textContent = config.imposters;
-    const maxImp = Math.max(1, config.players - 1);
+    const maxImp = maxImposters(config.players);
     const fill = (str) => str.replace('{max}', maxImp).replace('{p}', config.players);
     $('#imposter-hint').innerHTML = fill(I18n.t('imp_hint')) + I18n.secSpan(fill(I18n.s('imp_hint')));
     renderModeToggle();
@@ -369,12 +380,33 @@
   });
 
   // ================= START GAME =================
-  // The imposter's bluffing aid: a DIFFERENT word from the SAME category as the
-  // secret, so it's genuinely related. Picked once per game and shared by every
-  // imposter, keeping their clues consistent with one another. Falls back to any
-  // other word if the category has a single entry, and to null (the classic
-  // blind-bluff card) only when the whole vocabulary is a single word.
+  // gu -> the curated cluster it belongs to (see CLUSTERS in vocab.js).
+  const CLUSTER_BY_GU = (() => {
+    const m = new Map();
+    (window.CLUSTERS || []).forEach((cluster) => cluster.forEach((gu) => m.set(gu, cluster)));
+    return m;
+  })();
+  // gu -> the full {gu,en,cat} entry, so a decoy always resolves to a real word.
+  const VOCAB_BY_GU = (() => {
+    const m = new Map();
+    VOCAB.forEach((w) => { if (!m.has(w.gu)) m.set(w.gu, w); });
+    return m;
+  })();
+
+  // The imposter's bluffing aid: a DIFFERENT but genuinely confusable word, shared
+  // by every imposter so their clues stay consistent. First choice is another
+  // member of the secret word's curated cluster (a close look-alike); if the word
+  // isn't clustered we fall back to a random other word in the same category, then
+  // any other word, then null (the blind-bluff card, only if the vocab is one word).
   function pickDecoy(word) {
+    const cluster = CLUSTER_BY_GU.get(word.gu);
+    if (cluster) {
+      const mates = cluster
+        .filter((gu) => gu !== word.gu)
+        .map((gu) => VOCAB_BY_GU.get(gu))
+        .filter(Boolean); // ignore any cluster entry not present in VOCAB
+      if (mates.length) return mates[randInt(mates.length)];
+    }
     const sameCat = VOCAB.filter((w) => w.cat === word.cat && w !== word);
     const pool = sameCat.length ? sameCat : VOCAB.filter((w) => w !== word);
     return pool.length ? pool[randInt(pool.length)] : null;
@@ -592,7 +624,6 @@
   function startRounds() {
     game.alive = new Array(game.names.length).fill(true);
     game.round = 1;
-    game.phase = 'discuss'; // 'suggest' | 'discuss'
     game.eliminations = [];
     game.saved = false;
     game.starter = null;
@@ -600,7 +631,7 @@
     showScreen('round');
     renderRound();
     // The discussion opens right after the last player's card — start the clock
-    // automatically. It then runs continuously and is never reset between rounds.
+    // automatically. It is reset to a full duration at the start of every round.
     setTimer(timerDuration);
     startTimer();
   }
@@ -657,15 +688,13 @@
   }
 
   function renderRound() {
-    const suggest = game.phase === 'suggest';
-    const titleKey = suggest ? 'round_suggest_title' : 'round_discuss_title';
     $('#round-chip').textContent = `${I18n.t('round_word')} ${game.round}`;
-    $('#round-title').textContent = I18n.t(titleKey);
-    secEl($('#round-title-en'), titleKey);
-    $('#round-desc').innerHTML = biBr(suggest ? 'suggest_desc' : 'discuss_desc');
+    $('#round-title').textContent = I18n.t('round_discuss_title');
+    secEl($('#round-title-en'), 'round_discuss_title');
+    $('#round-desc').innerHTML = biBr('discuss_desc');
 
     const starterEl = $('#round-starter');
-    if (!suggest && game.starter != null && game.alive[game.starter]) {
+    if (game.starter != null && game.alive[game.starter]) {
       const fill = (str) => str.replace('{name}', game.names[game.starter]);
       starterEl.innerHTML = fill(I18n.t('discuss_starter')) +
         I18n.secSpan(fill(I18n.s('discuss_starter')));
@@ -676,32 +705,25 @@
 
     renderAlive($('#alive-chips'));
 
-    // The timer is a single continuous discussion clock: it is not reset or
-    // stopped here, so it keeps its running state across rounds.
-
-    $('#btn-to-discuss').hidden = !suggest;
-    $('#btn-to-vote').hidden = suggest;
-    $('#btn-skip-round').hidden = suggest;
+    // Every round is a discussion round; reveal its two actions (both start hidden
+    // in the HTML). The discussion clock is (re)started per round in start/nextRound.
+    $('#btn-to-vote').hidden = false;
+    $('#btn-skip-round').hidden = false;
   }
 
   function nextRound() {
     game.round += 1;
-    // Skip the separate suggesting screen — every round returns straight to the
-    // discussion screen with the "vote someone out" button. The timer carries
-    // over and keeps running.
-    game.phase = 'discuss';
     pickDiscussionStarter();
     showScreen('round');
     renderRound();
+    // Give every round a fair clock: stop the carried-over interval, reset to the
+    // configured duration (honouring a preset changed mid-game) and restart. The
+    // leading stopTimer() matters — the interval is still ticking from the previous
+    // discussion, and setTimer() alone wouldn't clear it.
+    stopTimer();
+    setTimer(timerDuration);
+    startTimer();
   }
-
-  // suggesting phase -> discussion phase
-  $('#btn-to-discuss').addEventListener('click', () => {
-    if (!game) return;
-    game.phase = 'discuss';
-    pickDiscussionStarter();
-    renderRound();
-  });
 
   // discussion -> selection (the group picks one player to remove)
   $('#btn-to-vote').addEventListener('click', () => {
@@ -759,7 +781,6 @@
   $('#btn-vote-back').addEventListener('click', () => {
     if (!game) return;
     pick = null;
-    game.phase = 'discuss';
     showScreen('round');
     renderRound();
   });
@@ -1153,7 +1174,8 @@
 
   // On timeout, report WHY based on how far the transport got: never reached the
   // matchmaking server vs. reached it but couldn't open a direct link to the host
-  // (typically Wi-Fi AP/client isolation — the TURN relay should normally cover it).
+  // (typically Wi-Fi AP/client isolation). No TURN relay is bundled, so the fix is
+  // a phone hotspot — see the in-app tip — or a custom relay via window.MP_ICE_SERVERS.
   function mpJoinTimedOut() {
     const st = (window.Net && Net.stage) || '';
     mpJoinFailed(st === 'broker' ? 'join_no_server' : 'join_no_host');
@@ -1228,7 +1250,7 @@
       toast(I18n.tt('need_players_mp').replace(/\{min\}/g, MP_MIN_PLAYERS));
       return;
     }
-    const imposters = Math.min(mp.host.config.imposters, connected.length - 1);
+    const imposters = Math.min(mp.host.config.imposters, maxImposters(connected.length));
     let pool = VOCAB;
     if (mp.host.config.category !== 'all') pool = VOCAB.filter((w) => w.cat === mp.host.config.category);
     if (!pool.length) pool = VOCAB;
@@ -1422,6 +1444,10 @@
     hostPickStarter();
     hostSyncPub();
     hostBroadcast();
+    // Each round gets a fresh shared clock (mirrors hostBeginDiscuss), so round 2+
+    // isn't left on a spent timer.
+    mpResetTimer(mp.pub.timer.duration);
+    mpStartTimer();
   }
 
   function hostPlayAgain() {
@@ -1784,7 +1810,7 @@
 
   function mpUpdateImpHint() {
     const players = mp.host.players.filter((p) => p.connected).length;
-    const maxImp = Math.max(1, players - 1);
+    const maxImp = maxImposters(players);
     if (mp.host.config.imposters > maxImp) mp.host.config.imposters = maxImp;
     const fill = (str) => str.replace('{max}', maxImp).replace('{p}', players);
     $('#mp-imp-hint').innerHTML = fill(I18n.t('imp_hint')) + I18n.secSpan(fill(I18n.s('imp_hint')));
@@ -2335,7 +2361,7 @@
         if (!b || !mp || !mp.amHost) return;
         const delta = parseInt(b.getAttribute('data-delta'), 10);
         const players = mp.host.players.filter((p) => p.connected).length;
-        const maxImp = Math.max(1, players - 1);
+        const maxImp = maxImposters(players);
         mp.host.config.imposters = Math.min(maxImp, Math.max(1, mp.host.config.imposters + delta));
         hostSyncPub();
         hostBroadcast();

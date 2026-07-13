@@ -29,6 +29,10 @@
   };
   const DEFAULT_PRIMARY = 'gu';
   const DEFAULT_SECONDARY = 'en';
+  // Scripts safe for the Latin-only display tweaks (uppercase + letter-spacing) the
+  // CSS applies to the secondary-language `.en` span. A non-Latin secondary (e.g.
+  // Gujarati) must NOT be uppercased/tracked — see html.sec-nonlatin in the CSS.
+  const LATIN_SCRIPT = { en: true };
 
   const STRINGS = {
     // ---- home ----
@@ -83,9 +87,7 @@
     timer: { gu: 'ટાઈમર', en: 'Timer' },
     timer_start: { gu: 'શરૂ', en: 'Start' },
     timer_pause: { gu: 'થોભો', en: 'Pause' },
-    round_suggest_title: { gu: 'સૂચન રાઉન્ડ', en: 'Suggesting round' },
     round_discuss_title: { gu: 'ચર્ચા રાઉન્ડ', en: 'Discussion round' },
-    suggest_desc: { gu: 'દરેક ખેલાડી કારણ સાથે સૂચવે કે કોણ શંકાસ્પદ છે.', en: 'Each player suggests who seems suspicious — with a reason.' },
     discuss_desc: { gu: 'દરેક ખેલાડી શબ્દ વિશે એક સંકેત આપે — શબ્દ બોલ્યા વગર. પછી મત આપો કે રાઉન્ડ છોડો.', en: 'Each gives one clue about the word — then vote or skip.' },
     discuss_starter: { gu: '{name} ચર્ચા શરૂ કરે', en: '{name} starts the discussion' },
     round_word: { gu: 'રાઉન્ડ', en: 'Round' },
@@ -197,7 +199,6 @@
     reconnected: { gu: 'ફરી જોડાયું', en: 'Reconnected' },
     left_room: { gu: 'રૂમ છોડ્યો', en: 'Left the room' },
     online: { gu: 'ઑનલાઇન', en: 'Online' },
-    offline_dot: { gu: 'ઑફલાઇન', en: 'Offline' },
     kicked_msg: { gu: 'હોસ્ટે તમને દૂર કર્યા', en: 'The host removed you' },
     game_in_progress: { gu: 'રમત ચાલુ છે — હમણાં જોડાઈ શકાતું નથી', en: 'A game is in progress — cannot join now' },
     room_full: { gu: 'રૂમ ભરાઈ ગયો છે', en: 'The room is full' },
@@ -274,8 +275,8 @@
       en: '<b>Remove or skip:</b> Together, pick one player to remove — or <b>skip</b> the round. The removed player’s role is revealed.',
     },
     how_6: {
-      gu: '<b>આગળના રાઉન્ડ:</b> જો રમત ચાલુ રહે તો ફરી એ જ ચર્ચા સ્ક્રીન આવે — ટાઈમર ચાલુ જ રહે — મતદાન સુધી.',
-      en: '<b>Next rounds:</b> If the game continues, you return to the same discussion screen — the timer keeps running — then vote again.',
+      gu: '<b>આગળના રાઉન્ડ:</b> જો રમત ચાલુ રહે તો ફરી ચર્ચા સ્ક્રીન આવે — દરેક રાઉન્ડ માટે ટાઈમર નવેસરથી શરૂ થાય — પછી ફરી મતદાન.',
+      en: '<b>Next rounds:</b> If the game continues, you return to the discussion screen — the timer resets for each round — then vote again.',
     },
     how_7: {
       gu: '<b>જીત:</b> બધા ઈમ્પોસ્ટર બહાર નીકળે તો <b>ખેલાડીઓ જીતે</b>. ઈમ્પોસ્ટર બાકીના ખેલાડીઓ જેટલા કે વધુ થઈ જાય તો <b>ઈમ્પોસ્ટર જીતે</b>.',
@@ -340,7 +341,9 @@
 
   function apply(root) {
     const r = root || document;
+    document.documentElement.lang = primary;
     document.documentElement.classList.toggle('no-secondary', !secondary);
+    document.documentElement.classList.toggle('sec-nonlatin', !!secondary && !LATIN_SCRIPT[secondary]);
 
     r.querySelectorAll('[data-i18n]').forEach((el) => {
       const key = el.getAttribute('data-i18n');

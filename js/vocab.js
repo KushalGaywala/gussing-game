@@ -260,7 +260,7 @@ const VOCAB = [
   { gu: 'પીળો',       en: 'Yellow',        cat: 'colors' },
   { gu: 'કાળો',       en: 'Black',         cat: 'colors' },
   { gu: 'સફેદ',       en: 'White',         cat: 'colors' },
-  { gu: 'કેસરી',      en: 'Orange',        cat: 'colors' },
+  { gu: 'કેસરી',      en: 'Saffron',       cat: 'colors' },
   { gu: 'ગુલાબી',     en: 'Pink',          cat: 'colors' },
   { gu: 'જાંબલી',     en: 'Purple',        cat: 'colors' },
   { gu: 'કથ્થઈ',      en: 'Brown',         cat: 'colors' },
@@ -297,6 +297,62 @@ const VOCAB = [
   { gu: 'ડ્રમ',       en: 'Drums',         cat: 'music' },
 ];
 
+// Curated "confusable" clusters for the imposter's decoy word. Each inner array
+// groups EXISTING VOCAB words (by their unique `gu` string) that live in the same
+// neighbourhood but each carry at least one distinguishing clue — so the imposter
+// gets a genuinely tricky look-alike instead of a random same-category word (which
+// can be a giveaway like Boat↔Ship or useless like Lion↔Frog).
+//
+// Curation rules: prefer *adjacency*, never *antonyms* (Fire/Ice, Black/White are
+// deliberately NOT paired — opposites are trivially separable and produce diverging
+// clues that expose the imposter at once); avoid near-identical pairs (Dhokla/Khaman);
+// every word sits in at most one cluster. A `gu` not present in VOCAB is ignored at
+// lookup time (see pickDecoy), so the table degrades gracefully.
+const CLUSTERS = [
+  // animals
+  ['સિંહ', 'વાઘ'], ['ગાય', 'ભેંસ'], ['ઘોડો', 'ગધેડો', 'ઝેબ્રા'], ['કૂતરો', 'બિલાડી'],
+  ['સસલું', 'ખિસકોલી', 'ઉંદર'], ['મગર', 'સાપ'], ['દેડકો', 'કાચબો'], ['હાથી', 'ગેંડો'],
+  ['હરણ', 'જિરાફ'], ['શિયાળ', 'રીંછ'],
+  // birds
+  ['કાગડો', 'કબૂતર', 'ચકલી'], ['પોપટ', 'મોર', 'કોયલ'], ['ગરુડ', 'ઘુવડ'], ['બતક', 'હંસ'],
+  ['મરઘી', 'શાહમૃગ'],
+  // fruits
+  ['સંતરું', 'લીંબુ'], ['સફરજન', 'જામફળ'], ['દ્રાક્ષ', 'જાંબુ'], ['તરબૂચ', 'પપૈયું'],
+  ['ચીકુ', 'સીતાફળ'],
+  // vegetables
+  ['ડુંગળી', 'લસણ'], ['કોબીજ', 'ફ્લાવર'], ['કારેલા', 'દૂધી'], ['ગાજર', 'મૂળા'],
+  // food
+  ['રોટલી', 'પૂરી', 'પરોઠા'], ['થેપલા', 'ખાખરા'], ['જલેબી', 'લાડુ'], ['સમોસા', 'ફાફડા'],
+  ['ઢોકળા', 'હાંડવો'], ['ભાત', 'ખીચડી'], ['શ્રીખંડ', 'દહીં'],
+  // body
+  ['આંખ', 'કાન', 'નાક'], ['દાંત', 'જીભ'], ['હાથ', 'પગ'], ['ખભો', 'ઘૂંટણ'], ['હૃદય', 'પેટ'],
+  // objects
+  ['ખુરશી', 'ટેબલ', 'પલંગ'], ['દરવાજો', 'બારી'], ['ચાવી', 'તાળું'], ['થાળી', 'વાટકી'],
+  ['ચમચી', 'છરી'], ['પંખો', 'દીવો'], ['ઘડિયાળ', 'અરીસો'], ['સાવરણી', 'ડોલ'],
+  // nature
+  ['સૂરજ', 'ચંદ્ર', 'તારો'], ['વરસાદ', 'વાદળ', 'વીજળી'], ['નદી', 'સમુદ્ર'],
+  ['રણ', 'જંગલ', 'પર્વત'], ['ઝાડ', 'ફૂલ', 'પાંદડું', 'ઘાસ'],
+  // jobs
+  ['ડૉક્ટર', 'નર્સ'], ['પોલીસ', 'સૈનિક'], ['સુથાર', 'લુહાર'], ['વકીલ', 'એન્જિનિયર'],
+  ['ચિત્રકાર', 'ગાયક'], ['પાઇલટ', 'ડ્રાઈવર'], ['ખેડૂત', 'માછીમાર'],
+  // places
+  ['સ્ટેશન', 'એરપોર્ટ'], ['શાળા', 'પુસ્તકાલય'], ['રેસ્ટોરન્ટ', 'સિનેમા'],
+  ['હોસ્પિટલ', 'બેંક'], ['બગીચો', 'ખેતર'], ['મંદિર', 'કિલ્લો'],
+  // vehicles
+  ['કાર', 'બસ', 'ટ્રક'], ['સાયકલ', 'મોટરસાયકલ'], ['વિમાન', 'હેલિકોપ્ટર'], ['હોડી', 'જહાજ'],
+  // sports
+  ['ટેનિસ', 'બેડમિન્ટન'], ['કબડ્ડી', 'ખોખો'], ['ફૂટબોલ', 'હોકી'],
+  // colors
+  ['વાદળી', 'જાંબલી'], ['લાલ', 'ગુલાબી'], ['કેસરી', 'પીળો'], ['કાળો', 'કથ્થઈ'],
+  // clothes
+  ['ટોપી', 'પાઘડી'], ['શર્ટ', 'સ્વેટર'], ['સાડી', 'ચણિયાચોળી'], ['ધોતી', 'કુર્તા'],
+  // festivals
+  ['દિવાળી', 'હોળી'], ['નવરાત્રી', 'જન્માષ્ટમી'], ['ઈદ', 'નાતાલ'],
+  // music
+  ['તબલા', 'ઢોલ'], ['સિતાર', 'ગિટાર'],
+];
+
 // Expose globally for non-module scripts.
 window.CATEGORIES = CATEGORIES;
 window.VOCAB = VOCAB;
+window.CLUSTERS = CLUSTERS;
